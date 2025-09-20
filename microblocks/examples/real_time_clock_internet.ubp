@@ -1,0 +1,531 @@
+module main
+author unknown
+version 1 0 
+description ''
+variables cur_time day 
+
+  spec ' ' 'set_time' 'set_time'
+
+to set_time {
+  local 'curtime' ('http܃//' 'worldtimeapi.org/api/ip')
+  local 'count' 0
+  repeatUntil (and ((size curtime) > 30) (count < 30)) {
+    count += 1
+    local 'curtime' ('http܃//' 'worldtimeapi.org/api/ip')
+    waitMillis 50
+  }
+  if ((size curtime) > 30) {
+    local 'datetime' ('[misc:jsonGet]' curtime 'datetime')
+    local 'date' (at 1 ('[data:split]' datetime 'T'))
+    local 'list_date' ('[data:split]' date '-')
+    local 'time' (at 1 ('[data:split]' (at 2 ('[data:split]' datetime 'T')) '.'))
+    local 'list_time' ('[data:split]' time ':')
+    rtc_setDate ('[data:convertType]' (at 1 list_date) 'number') ('[data:convertType]' (at 2 list_date) 'number') ('[data:convertType]' (at 3 list_date) 'number')
+    rtc_setTime ('[data:convertType]' (at 1 list_time) 'number') ('[data:convertType]' (at 2 list_time) 'number') ('[data:convertType]' (at 3 list_time) 'number')
+    local 'dayofweek' ('[misc:jsonGet]' curtime 'day_of_week')
+    rtc_setDayOfWeek ('[data:convertType]' dayofweek 'number')
+    sayIt dayofweek
+  }
+}
+
+script 113 50 {
+whenStarted
+comment 'set wifi credentials'
+wifiConnect 'Network_Name' ''
+set_time
+forever {
+  sayIt (rtc_getTimeOrDate 'rtc;date (Y-M-D)') (rtc_getTimeOrDate 'rtc;time (H:M:S)')
+  waitMillis 1000
+}
+}
+
+script 644 75 {
+comment 'manually set time and date'
+rtc_setDate 2025 7 12
+rtc_setTime 10 57 0
+rtc_setDayOfWeek 'rtc;Saturday'
+}
+
+script 106 471 {
+to set_time {}
+}
+
+
+module 'HTTP client' Comm
+author MicroBlocks
+version 1 5 
+depends WiFi 
+tags http network get post put delete 
+choices requestTypes GET POST PUT DELETE 
+description 'Send HTTP requests and get responses back. You can use this library to fetch or store data in online servers, or to control other Wifi-enabled boards.
+'
+
+  spec 'r' '_http_body_start' '_http_body_start _' 'auto' ''
+  spec 'r' '_http_header_text' '_http_header_text _' 'auto' ''
+  spec 'r' '_http_status_text' '_http_status_text _' 'auto' ''
+  spec 'r' '_http_header' '_header _ of response _' 'auto auto' 'content-length' ''
+  spec 'r' '_http_status' '_status of response _' 'auto' ''
+  spec 'r' '_line_end' '_line_end'
+  spec 'r' '_lowercase' '_lowercase _' 'auto' 'ABC Def gH'
+  spec 'r' '_request_url' '_request_url _ method _ body _ : port _' 'str menu.requestTypes str num' '' 'GET' '' 80
+  spec 'r' '_readHTTPResponse' '_readHTTPResponse'
+  spec 'r' 'http܃//' 'http #SVG#colon-double-slash _ : port _' 'auto num' 'microblocks.fun/example.txt' 80
+  spec ' ' 'request' '_ data _ to http #SVG#colon-double-slash _ : port _' 'menu.requestTypes str str num' 'POST' 'MicroBlocks is fun' 'microblocks.fun' 80
+
+to '_http_body_start' response {
+  return (('[data:find]' ('[data:unicodeString]' ('[data:makeList]' 13 10 13 10)) response) + 4)
+}
+
+to '_http_header' header response {
+  local 'header text' ('_http_header_text' response)
+  header = ('_lowercase' header)
+  repeatUntil ((size (v 'header text')) < 3) {
+    local 'key' ('[data:copyFromTo]' (v 'header text') 1 (('[data:find]' ':' (v 'header text')) - 1))
+    if (('_lowercase' key) == header) {
+      return ('[data:copyFromTo]' (v 'header text') (('[data:find]' ':' (v 'header text')) + 2) (('[data:find]' ('_line_end') (v 'header text')) - 1))
+    }
+    'header text' = ('[data:copyFromTo]' (v 'header text') (('[data:find]' ('_line_end') (v 'header text')) + 2))
+  }
+  return (booleanConstant false)
+}
+
+to '_http_header_text' response {
+  local 'headersStart' (('[data:find]' ('_line_end') response) + 2)
+  return ('[data:copyFromTo]' response headersStart (('_http_body_start' response) + 2))
+}
+
+to '_http_status' response {
+  return (('[data:copyFromTo]' ('_http_status_text' response) 1 4) + 0)
+}
+
+to '_http_status_text' response {
+  return ('[data:copyFromTo]' response ('[data:find]' ' ' response) ('[data:find]' ('_line_end') response))
+}
+
+to '_line_end' {
+  return ('[data:unicodeString]' ('[data:makeList]' 13 10))
+}
+
+to '_lowercase' string {
+  local 'lowercased' ''
+  local 'char code' ''
+  for c (size string) {
+    'char code' = ('[data:unicodeAt]' c string)
+    if (and ((v 'char code') >= 65) ((v 'char code') <= 90)) {
+      'char code' = ((v 'char code') + 32)
+    }
+    lowercased = ('[data:join]' lowercased ('[data:unicodeString]' (v 'char code')))
+  }
+  return lowercased
+}
+
+to '_readHTTPResponse' {
+  local 'response' ''
+  local 'lastChunkTime' (millisOp)
+  repeatUntil (not ('[net:httpIsConnected]')) {
+    local 'chunk' ('[net:httpResponse]')
+    if ((size chunk) > 0) {
+      response = ('[data:join]' response chunk)
+      lastChunkTime = (millisOp)
+    } (((millisOp) - lastChunkTime) > 10000) {
+      return response
+    }
+    waitMillis 20
+  }
+  response = ('[data:join]' response ('[net:httpResponse]'))
+  return response
+}
+
+to '_request_url' url method body optionalPort {
+  local 'port' 80
+  if ((pushArgCount) > 3) {
+    port = optionalPort
+  }
+  local 'host' ''
+  local 'path' ''
+  local 'slashPosition' ('[data:find]' '/' url)
+  if (slashPosition > 0) {
+    host = ('[data:copyFromTo]' url 1 (slashPosition - 1))
+    path = ('[data:copyFromTo]' url (slashPosition + 1))
+  } else {
+    host = url
+  }
+  if (('[net:wifiStatus]') != 'Connected') {
+    return ('[data:join]' '0 Not Connected' ('_line_end'))
+  }
+  '[net:httpConnect]' host port
+  if (not ('[net:httpIsConnected]')) {
+    return ('[data:join]' '0 Could not connect to server' ('_line_end'))
+  }
+  '[net:httpRequest]' method host path body
+  return ('_readHTTPResponse')
+}
+
+to 'http܃//' url optionalPort {
+  local 'port' 80
+  if ((pushArgCount) > 1) {
+    port = optionalPort
+  }
+  local 'response' ('_request_url' url 'GET' '' port)
+  if (response != '') {
+    if (('_http_status' response) == 200) {
+      return ('[data:copyFromTo]' response ('_http_body_start' response))
+    } else {
+      return ('_http_status_text' response)
+    }
+  } else {
+    return 'Failed to get response'
+  }
+}
+
+to request method data url optionalPort {
+  local 'port' 80
+  if ((pushArgCount) > 3) {
+    port = optionalPort
+  }
+  local 'response' ('_request_url' url method data port)
+  if (response != '') {
+    local 'status' ('_http_status' response)
+    local 'body start' ('_http_body_start' response)
+    if (and (200 == status) ((v 'body start') > 0)) {
+      sayIt ('[data:copyFromTo]' response (v 'body start'))
+    } else {
+      sayIt ('_http_status_text' response)
+    }
+  } else {
+    sayIt 'Failed to get response'
+  }
+}
+
+
+module 'JSON Primitives' Data
+author MicroBlocks
+version 1 0 
+tags data json network 
+description 'Very fast and efficient primitives to parse JSON strings.'
+
+  spec 'r' '[misc:jsonGet]' 'json _ . _' 'str str' '{ "x": 1,  "y": [41, 42, 43] }' 'y.2'
+  spec 'r' '[misc:jsonCount]' 'json count _ . _' 'str str' '[1, [4, 5, 6, 7], 3]' ''
+  spec 'r' '[misc:jsonValueAt]' 'json value _ . _ at _' 'str str num' '{ "x": 1,  "y": 42 }' '' 2
+  spec 'r' '[misc:jsonKeyAt]' 'json key _ . _ at _' 'str str num' '{ "x": 1,  "y": 42 }' '' 2
+
+module LVGL Output
+author Ste7an
+version 1 4 
+choices style_types range rotation angles brightness 
+choices obj_types arc slider led switch bar roller list screen tabview tileview 
+description 'LVGL support for MicroBlocks'
+variables _lvgl_call_backs 
+
+  spec ' ' '[tft:LVGLon]' 'enable lvgl _' 'bool' true
+  spec ' ' '[tft:LVGLaddbtn]' 'button _ : scale _ : text _ : parent _' 'str num str str' 'button' 1 'button' 'lv_scr_act'
+  spec ' ' '[tft:LVGLaddlabel]' 'label _ : scale _ : text _ : parent _' 'str num str str' 'label' 1 'label' 'lv_scr_act'
+  spec ' ' '[tft:LVGLaddobj]' 'add _ as _ : parent _' 'str.obj_types str str' 'arc' '' 'lv_scr_act'
+  spec ' ' '[tft:LVGLsetpos]' 'set position _ x _ y _' 'str num num' '' 100 100
+  spec ' ' '[tft:LVGLsetsize]' 'set size _ width _ height _' 'str num num' '' 100 10
+  spec ' ' '[tft:LVGLsetval]' 'set value _ value _' 'str num' '' 10
+  spec 'r' '[tft:LVGLgetval]' 'get value _' 'str' ''
+  spec ' ' '[tft:LVGLsettext]' 'set text _ text _ : scale _' 'str str auto' '' 'text' 1
+  spec ' ' '[tft:LVGLsetcolor]' 'set color _ background _ : indicator _ : knob _' 'str color color color' ''
+  spec 'r' 'makeColor' 'color r _ g _ b _ (0-255)' 'num num num' 0 100 100
+  space
+  spec 'r' '[tft:LVGLevent]' 'event available'
+  spec 'r' '[tft:LVGLgetevent]' 'get event'
+  space
+  spec 'r' 'screen' 'screen'
+  spec ' ' '[tft:LVGLsetparent]' 'set _ parent _' 'str str' '' ''
+  spec 'r' '[tft:LVGLgetallobjs]' 'get all objects'
+  spec ' ' '[tft:LVGLdelobj]' 'delete object _' 'str' ''
+  spec ' ' 'delete_all_objects' 'delete all objects'
+  spec ' ' '[tft:fliptouch]' 'flip touch x _ y _  x/y _' 'bool bool bool' false false false
+  spec ' ' '[tft:LVGLaddimg]' 'image path _  as  _ : parent _' 'str str str' '' 'img' 'lv_scr_act'
+  spec ' ' '[tft:LVGLaddfont]' 'font path _  as  _' 'str str' '' ''
+  spec ' ' '[tft:LVGLsetstyle]' 'set _ of _ to _ : until _' 'str.style_types str auto auto' 'range' '' '' ''
+  spec ' ' '[tft:LVGLloadscreen]' 'load screen _' 'str' ''
+  spec ' ' '[tft:LVGLaddtab]' 'tab _ parent _' 'str str' 'tab' ''
+  spec ' ' '[tft:LVGLaddtile]' 'tile _ parent _ col _ row _ L _ R _ T _ B _' 'str str num num bool bool bool bool' 'tile' '' 0 0 false false false false
+  spec 'r' '[tft:LVGLpsram]' 'get PSRAM'
+  spec ' ' 'init_callback' 'init callback'
+  spec ' ' 'add_callback' 'add callback _ : function _' 'str str' '' ''
+  spec ' ' 'handle_event' 'handle event'
+
+to add_callback obj function {
+  if (not (isType _lvgl_call_backs 'list')) {_lvgl_call_backs = ('[data:makeList]')}
+  if ((pushArgCount) < 2) {
+    '[data:addLast]' ('[data:makeList]' obj obj) _lvgl_call_backs
+  } else {
+    '[data:addLast]' ('[data:makeList]' obj function) _lvgl_call_backs
+  }
+}
+
+to delete_all_objects {
+  local 'all_objects' ('[tft:LVGLgetallobjs]')
+  for i (size all_objects) {
+    if ((at i all_objects) != '!main_screen_default') {'[tft:LVGLdelobj]' (at i all_objects)}
+  }
+  comment 'load original main screen that is stored'
+  '[tft:LVGLloadscreen]' '!main_screen_default'
+}
+
+to handle_event {
+  local 'var' 1
+  local 'event' ('[tft:LVGLgetevent]')
+  repeatUntil (or (var > (size _lvgl_call_backs)) (event == (at 1 (at var _lvgl_call_backs)))) {
+    var += 1
+  }
+  if (var <= (size _lvgl_call_backs)) {
+    callCustomCommand (at 2 (at var _lvgl_call_backs))
+  }
+}
+
+to init_callback {
+  _lvgl_call_backs = 0
+}
+
+to makeColor r g b {
+  r = (maximum 0 (minimum r 255))
+  g = (maximum 0 (minimum g 255))
+  b = (maximum 0 (minimum b 255))
+  return ((r << 16) | ((g << 8) | b))
+}
+
+to screen {
+  return 'lv_scr_act'
+}
+
+
+module 'Real Time Clock' Input
+author MicroBlocks
+version 1 2 
+choices rtc_timeOrDate 'rtc;time (H:M:S)' 'rtc;date (Y-M-D)' 
+choices rtc_component second minute hour day month year 'day of week' 
+description 'Real time clock (RTC).
+
+Simple functions to set and read the current time and date of a real-time clock module.
+With a 3V coin cell battery intalled, the clock will maintain the time and date while powered off.
+
+Currently supports the following RTC chips: DS1307, PCF85063; may be extended to support others in the future.
+
+https://www.analog.com/media/en/technical-documentation/data-sheets/ds1307.pdf
+https://www.nxp.com/docs/en/data-sheet/PCF85063A.pdf
+https://files.seeedstudio.com/wiki/Grove-High_Precision_RTC/res/PCF85063TP.pdf
+
+(Many thanks to Ralf Krause)
+'
+variables rtc_i2cAddr 
+
+  spec 'r' 'rtc_getTimeOrDate' 'clock _' 'menu.rtc_timeOrDate' 'rtc;time (H:M:S)'
+  spec 'r' 'rtc_getComponent' 'clock _' 'menu.rtc_component' 'second'
+  space
+  spec ' ' 'rtc_setTime' 'set hours _ minutes _ seconds _' 'num num num' 9 30 0
+  spec ' ' 'rtc_setDate' 'set year _ month _ day _' 'num num num' 2025 1 1
+  spec ' ' 'rtc_setDayOfWeek' 'set day of week _ (1-7)' 'num' 1
+  space
+  spec 'r' '_rtc_bcd2dec' '_rtc_bcd2dec _' 'num'
+  spec 'r' '_rtc_dec2bcd' '_rtc_dec2bcd _' 'num'
+  spec 'r' '_rtc_twoDigit' '_rtc_twoDigit _' 'num'
+  spec ' ' '_rtc_init' '_rtc_init'
+  spec 'r' '_rtc_isPCF85063' '_rtc_isPCF85063'
+  spec 'r' '_rtc_getReg' '_rtc_getReg register _' 'num' 3
+  spec ' ' '_rtc_setReg' '_rtc_setReg register _ value _' 'num num' 3 3
+  spec 'r' '_rtc_mapRegNum' '_rtc_mapRegNum _' 'num' 0
+
+to '_rtc_bcd2dec' bcd {
+  comment 'Convert an 8-bit "binary-coded decimal" number to a decimal number in range 0-99'
+  return (((bcd / 16) * 10) + (bcd % 16))
+}
+
+to '_rtc_dec2bcd' decimal {
+  comment 'Convert a decimal in range 0-99 to an 8-bit "binary-coded decimal" value.'
+  decimal = (maximum 0 (minimum decimal 99))
+  return (((decimal / 10) * 16) + (decimal % 10))
+}
+
+to '_rtc_getReg' reg {
+  '_rtc_init'
+  if (rtc_i2cAddr == 0) {
+    return
+  }
+  '[sensors:i2cSetClockSpeed]' 100000
+  result = (i2cGet rtc_i2cAddr ('_rtc_mapRegNum' reg))
+  '[sensors:i2cSetClockSpeed]' 400000
+  return result
+}
+
+to '_rtc_init' {
+  if (rtc_i2cAddr != 0) {return}
+  if ('[sensors:i2cExists]' (hexToInt '68')) {
+    rtc_i2cAddr = (hexToInt '68')
+  } ('[sensors:i2cExists]' (hexToInt '51')) {
+    rtc_i2cAddr = (hexToInt '51')
+  } else {
+    rtc_i2cAddr = 0
+    sayIt 'No RTC found.'
+  }
+}
+
+to '_rtc_isPCF85063' {
+  '_rtc_init'
+  return (rtc_i2cAddr == (hexToInt '51'))
+}
+
+to '_rtc_mapRegNum' reg {
+  if ((hexToInt '51') == rtc_i2cAddr) {
+    comment 'Map DS1307 register to equivalent PCF85063 register.
+Order of DS1307 registers is: second minute hour dayOfWeek day month year'
+    reg = (hexToInt (at (reg + 1) '456879A'))
+  }
+  return reg
+}
+
+to '_rtc_setReg' reg value {
+  '_rtc_init'
+  if (rtc_i2cAddr == 0) {
+    return
+  }
+  '[sensors:i2cSetClockSpeed]' 100000
+  i2cSet rtc_i2cAddr ('_rtc_mapRegNum' reg) value
+  '[sensors:i2cSetClockSpeed]' 400000
+}
+
+to '_rtc_twoDigit' n {
+  comment 'Return a two-digit decimal representation for n (range 0-99).'
+  decimal = (maximum 0 (minimum n 99))
+  return ('[data:join]' (ifExpression (n < 10) '0' '') n)
+}
+
+to rtc_getComponent which {
+  local 'component' ('[data:makeList]' 'second' 'minute' 'hour' 'day of week' 'day' 'month' 'year')
+  local 'reg' (('[data:find]' which component) - 1)
+  if (reg < 0) {
+    return 0
+  }
+  local 'result' ('_rtc_bcd2dec' ('_rtc_getReg' reg))
+  if ('year' == which) {
+    result += 2000
+  } ('_rtc_isPCF85063') {
+    comment 'PCF85063 weekday range is 0-6.'
+    weekdayNum += 1
+  }
+  return result
+}
+
+to rtc_getTimeOrDate which {
+  if ('rtc;time (H:M:S)' == which) {
+    local 'hour' ('_rtc_bcd2dec' ('_rtc_getReg' 2))
+    local 'minute' ('_rtc_bcd2dec' ('_rtc_getReg' 1))
+    local 'second' ('_rtc_bcd2dec' (('_rtc_getReg' 0) & 127))
+    return ('[data:join]' ('_rtc_twoDigit' hour) ':' ('_rtc_twoDigit' minute) ':' ('_rtc_twoDigit' second))
+  } else {
+    local 'day' ('_rtc_bcd2dec' ('_rtc_getReg' 4))
+    local 'month' ('_rtc_bcd2dec' ('_rtc_getReg' 5))
+    local 'year' (('_rtc_bcd2dec' ('_rtc_getReg' 6)) + 2000)
+    return ('[data:join]' year '-' ('_rtc_twoDigit' month) '-' ('_rtc_twoDigit' day))
+  }
+}
+
+to rtc_setDate year month day {
+  day = (maximum 1 (minimum day 31))
+  month = (maximum 1 (minimum month 12))
+  year = (maximum 0 (minimum (year - 2000) 99))
+  '_rtc_setReg' 4 ('_rtc_dec2bcd' day)
+  '_rtc_setReg' 5 ('_rtc_dec2bcd' month)
+  '_rtc_setReg' 6 ('_rtc_dec2bcd' year)
+}
+
+to rtc_setDayOfWeek weekdayNum {
+  weekdayNum = (maximum 1 (minimum weekdayNum 7))
+  if ('_rtc_isPCF85063') {
+    comment 'PCF85063 weekday range is 0-6.'
+    weekdayNum += -1
+  }
+  '_rtc_setReg' 3 ('_rtc_dec2bcd' weekdayNum)
+}
+
+to rtc_setTime hours minutes seconds {
+  comment 'Clock is running (bit 7 of seconds = 0) using 24-hour time (bit 6 of hours = 0). '
+  hours = (maximum 0 (minimum hours 23))
+  minutes = (maximum 0 (minimum minutes 59))
+  seconds = (maximum 0 (minimum seconds 59))
+  '_rtc_setReg' 0 ('_rtc_dec2bcd' seconds)
+  '_rtc_setReg' 1 ('_rtc_dec2bcd' minutes)
+  '_rtc_setReg' 2 ('_rtc_dec2bcd' hours)
+}
+
+
+module WiFi Comm
+author MicroBlocks
+version 1 10 
+tags communication network 
+description 'Connect to a WiFi network. Used in conjunction with other network libraries, such as HTTP client, HTTP server or Web Thing.
+'
+
+  spec ' ' 'wifiConnect' 'wifi connect to _ password _ : IP _ gateway _ subnet _' 'str str auto auto auto' 'Network_Name' '' '192.168.1.42' '192.168.1.1' '255.255.255.0'
+  spec ' ' 'wifiCreateHotspot' 'wifi create hotspot _ password _' 'str str' 'Network_Name' 'Network_Password'
+  spec ' ' '[net:stopWiFi]' 'stop wifi'
+  space
+  spec ' ' '[net:setDomainName]' 'wifi set local domain name _ .local' 'str' 'microblocks'
+  space
+  spec 'r' 'getIPAddress' 'IP address'
+  spec 'r' '[net:myMAC]' 'MAC address'
+  space
+  spec ' ' '[net:allowWiFiAndBLE]' 'allow WiFi while using BLE _' 'bool' true
+
+to getIPAddress {
+  return ('[net:myIPAddress]')
+}
+
+to wifiConnect ssid password fixedIP gatewayIP subnetIP {
+  if (not ('[net:hasWiFi]')) {return}
+  '[net:stopWiFi]'
+  if ((pushArgCount) < 5) {
+    '[net:startWiFi]' ssid password
+  } else {
+    '[net:startWiFi]' ssid password false fixedIP gatewayIP subnetIP
+  }
+  local 'startMSecs' (millisOp)
+  repeatUntil (('[net:myIPAddress]') != '0.0.0.0') {
+    comment 'Timeout after N seconds'
+    if (((millisOp) - startMSecs) > 30000) {
+      sayIt 'Could not connect'
+      return 0
+    }
+    comment 'Slow blink while trying to connect'
+    setUserLED true
+    waitMillis 300
+    setUserLED false
+    waitMillis 300
+  }
+  repeat 6 {
+    comment 'Quick blinks when connected'
+    setUserLED true
+    waitMillis 50
+    setUserLED false
+    waitMillis 50
+  }
+  '[net:setDomainName]' 'microblocks'
+  sayIt 'My IP address is:' ('[net:myIPAddress]')
+}
+
+to wifiCreateHotspot ssid password {
+  if (not ('[net:hasWiFi]')) {return}
+  if ((size password) < 8) {
+    sayIt 'Password must be at least 8 characters'
+    return 0
+  }
+  '[net:startWiFi]' ssid password true
+  if ('Connected' != ('[net:wifiStatus]')) {
+    sayIt 'Could not create hotspot'
+    return 0
+  }
+  repeat 6 {
+    comment 'Quick blinks when connected'
+    setUserLED true
+    waitMillis 50
+    setUserLED false
+    waitMillis 50
+  }
+  '[net:setDomainName]' 'microblocks'
+  sayIt 'My IP address is:' ('[net:myIPAddress]')
+}
+

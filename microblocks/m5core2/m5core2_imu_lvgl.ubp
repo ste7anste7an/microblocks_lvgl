@@ -1,0 +1,523 @@
+module main
+author unknown
+version 1 0 
+description ''
+variables i2c_devs 
+
+script 479 40 {
+comment 'open graph'
+}
+
+script 113 66 {
+whenStarted
+'[sensors:i2cSetClockSpeed]' 400000
+'[sensors:i2cSetPins]' 21 22
+'[tft:LVGLon]' true
+delete_all_objects
+'[tft:LVGLaddlabel]' 'lbl' 3 'Move me'
+'[tft:LVGLsetpos]' 'lbl' 50 0
+'[tft:LVGLaddlabel]' 'lbl1' 2 'imu x'
+'[tft:LVGLsetpos]' 'lbl1' 100 40
+'[tft:LVGLaddobj]' 'slider' 'sl1'
+'[tft:LVGLsetcolor]' 'sl1' (colorSwatch 35 190 30 255) (colorSwatch 35 190 30 255) (colorSwatch 35 190 30 255)
+'[tft:LVGLsetpos]' 'sl1' 20 80
+'[tft:LVGLaddlabel]' 'lbl2' 2 'imu y'
+'[tft:LVGLsetpos]' 'lbl2' 100 100
+'[tft:LVGLaddobj]' 'slider' 'sl2'
+'[tft:LVGLsetcolor]' 'sl2' (colorSwatch 190 59 14 255) (colorSwatch 190 42 13 255) (colorSwatch 190 23 8 255)
+'[tft:LVGLsetpos]' 'sl2' 20 140
+'[tft:LVGLaddlabel]' 'lbl3' 2 'imu z'
+'[tft:LVGLsetpos]' 'lbl3' 100 160
+'[tft:LVGLaddobj]' 'slider' 'sl3'
+'[tft:LVGLsetcolor]' 'sl3' (colorSwatch 14 7 190 255) (colorSwatch 14 13 190 255) (colorSwatch 13 11 190 255)
+'[tft:LVGLsetpos]' 'sl3' 20 200
+'[tft:LVGLsetstyle]' 'range' 'sl1' -100 100
+'[tft:LVGLsetstyle]' 'range' 'sl2' -100 100
+'[tft:LVGLsetstyle]' 'range' 'sl3' -100 100
+forever {
+  graphIt (mpu6050_tiltX) (mpu6050_tiltY) (mpu6050_tiltZ)
+  '[tft:LVGLsetval]' 'sl1' (mpu6050_tiltX)
+  '[tft:LVGLsetval]' 'sl2' (mpu6050_tiltY)
+  '[tft:LVGLsetval]' 'sl3' (mpu6050_tiltZ)
+}
+}
+
+
+module LVGL Output
+author Ste7an
+version 1 4 
+choices style_types range rotation angles brightness 
+choices obj_types arc slider led switch bar roller list screen tabview tileview 
+description 'LVGL support for MicroBlocks'
+variables _lvgl_call_backs 
+
+  spec ' ' '[tft:LVGLon]' 'enable lvgl _' 'bool' true
+  spec ' ' '[tft:LVGLaddbtn]' 'button _ : scale _ : text _ : parent _' 'str num str str' 'button' 1 'button' 'lv_scr_act'
+  spec ' ' '[tft:LVGLaddlabel]' 'label _ : scale _ : text _ : parent _' 'str num str str' 'label' 1 'label' 'lv_scr_act'
+  spec ' ' '[tft:LVGLaddobj]' 'add _ as _ : parent _' 'str.obj_types str str' 'arc' '' 'lv_scr_act'
+  spec ' ' '[tft:LVGLsetpos]' 'set position _ x _ y _' 'str num num' '' 100 100
+  spec ' ' '[tft:LVGLsetsize]' 'set size _ width _ height _' 'str num num' '' 100 10
+  spec ' ' '[tft:LVGLsetval]' 'set value _ value _' 'str num' '' 10
+  spec 'r' '[tft:LVGLgetval]' 'get value _' 'str' ''
+  spec ' ' '[tft:LVGLsettext]' 'set text _ text _ : scale _' 'str str num' '' 'text' 1
+  spec ' ' '[tft:LVGLsetcolor]' 'set color _ background _ : indicator _ : knob _' 'str color color color' ''
+  spec 'r' 'makeColor' 'color r _ g _ b _ (0-255)' 'num num num' 0 100 100
+  space
+  spec 'r' '[tft:LVGLevent]' 'event available'
+  spec 'r' '[tft:LVGLgetevent]' 'get event'
+  space
+  spec 'r' 'screen' 'screen'
+  spec ' ' '[tft:LVGLsetparent]' 'set _ parent _' 'str str' '' ''
+  spec 'r' '[tft:LVGLgetallobjs]' 'get all objects'
+  spec ' ' '[tft:LVGLdelobj]' 'delete object _' 'str' ''
+  spec ' ' 'delete_all_objects' 'delete all objects'
+  spec ' ' '[tft:fliptouch]' 'flip touch x _ y _  x/y _' 'bool bool bool' false false false
+  spec ' ' '[tft:LVGLaddimg]' 'imgage path _  as  _ : parent _' 'str str str' '' 'img' 'lv_scr_act'
+  spec ' ' '[tft:LVGLsetstyle]' 'set _ of _ to _ : until _' 'str.style_types str auto auto' 'range' '' '' ''
+  spec ' ' '[tft:LVGLloadscreen]' 'load screen _' 'str' ''
+  spec ' ' '[tft:LVGLaddtab]' 'tab _ parent _' 'str str' 'tab' ''
+  spec ' ' '[tft:LVGLaddtile]' 'tile _ parent _ col _ row _ L _ R _ T _ B _' 'str str num num bool bool bool bool' 'tile' '' 0 0 false false false false
+  spec 'r' '[tft:LVGLpsram]' 'get PSRAM'
+  spec ' ' 'init_callback' 'init callback'
+  spec ' ' 'add_callback' 'add callback _ : function _' 'str str' '' ''
+  spec ' ' 'handle_event' 'handle event'
+
+to add_callback obj function {
+  if (not (isType _lvgl_call_backs 'list')) {_lvgl_call_backs = ('[data:makeList]')}
+  if ((pushArgCount) < 2) {
+    '[data:addLast]' ('[data:makeList]' obj obj) _lvgl_call_backs
+  } else {
+    '[data:addLast]' ('[data:makeList]' obj function) _lvgl_call_backs
+  }
+}
+
+to delete_all_objects {
+  local 'all_objects' ('[tft:LVGLgetallobjs]')
+  for i (size all_objects) {
+    if ((at i all_objects) != '!main_screen_default') {'[tft:LVGLdelobj]' (at i all_objects)}
+  }
+  comment 'load original main screen that is stored'
+  '[tft:LVGLloadscreen]' '!main_screen_default'
+}
+
+to handle_event {
+  local 'var' 1
+  local 'event' ('[tft:LVGLgetevent]')
+  repeatUntil (or (var > (size _lvgl_call_backs)) (event == (at 1 (at var _lvgl_call_backs)))) {
+    var += 1
+  }
+  if (var <= (size _lvgl_call_backs)) {
+    callCustomCommand (at 2 (at var _lvgl_call_backs))
+  }
+}
+
+to init_callback {
+  _lvgl_call_backs = 0
+}
+
+to makeColor r g b {
+  r = (maximum 0 (minimum r 255))
+  g = (maximum 0 (minimum g 255))
+  b = (maximum 0 (minimum b 255))
+  return ((r << 16) | ((g << 8) | b))
+}
+
+to screen {
+  return 'lv_scr_act'
+}
+
+
+module 'Motion (MPU 6050)' Input
+author MicroBlocks
+version 1 0 
+choices mpu6050_axis x y z 
+description 'MPU6050 6-DOF acclerometer + gyro motion sensor
+
+Based on code from Joan Guillén.
+'
+variables mpu6050_addr mpu6050_gyro_offset_x mpu6050_gyro_offset_y mpu6050_gyro_offset_z 
+
+  spec 'r' 'mpu6050_tiltX' 'm6050 tilt x'
+  spec 'r' 'mpu6050_tiltY' 'm6050 tilt y'
+  spec 'r' 'mpu6050_tiltZ' 'm6050 tilt z'
+  spec 'r' 'mpu6050_acceleration' 'm6050 acceleration'
+  space
+  spec 'r' 'mpu6050_gyro' '_mpu6050 gyro _' 'menu.mpu6050_axis' 'x'
+  spec ' ' 'mpu6050_calibrate_gyro' 'mpu6050 calibrate gyro'
+  space
+  spec 'r' '_mpu6050_raw_accel' '_mpu6050_raw_accel _ sign _' 'menu.mpu6050_axis num' 'x' 1
+  spec 'r' '_mpu6050_raw_gyro' '_mpu6050_raw_gyro _' 'menu.mpu6050_axis' 'x'
+  spec ' ' '_mpu6050_setup' '_mpu6050_setup'
+
+to '_mpu6050_raw_accel' axis sign {
+  '_mpu6050_setup'
+  local 'reading' (newList 6)
+  '[sensors:i2cWrite]' mpu6050_addr ('[data:makeList]' (hexToInt '3B'))
+  '[sensors:i2cRead]' mpu6050_addr reading
+  local 'msB' 3
+  local 'lsB' 4
+  if (axis == 'y') {
+    msB = 1
+    lsB = 2
+  }
+  if (axis == 'z') {
+    msB = 5
+    lsB = 6
+  }
+  local 'result' (at msB reading)
+  if (result > 127) {
+    result = (result - 256)
+  }
+  return (sign * (((result << 8) | (at lsB reading)) / 163))
+}
+
+to '_mpu6050_raw_gyro' axis {
+  '_mpu6050_setup'
+  local 'reading' (newList 6)
+  '[sensors:i2cWrite]' mpu6050_addr ('[data:makeList]' (hexToInt '43'))
+  '[sensors:i2cRead]' mpu6050_addr reading
+  local 'msB' 1
+  local 'lsB' 2
+  local 'offset' mpu6050_gyro_offset_x
+  if (axis == 'y') {
+    msB = 3
+    lsB = 4
+    offset = mpu6050_gyro_offset_y
+  }
+  if (axis == 'z') {
+    msB = 5
+    lsB = 6
+    offset = mpu6050_gyro_offset_z
+  }
+  local 'result' (at msB reading)
+  if (result > 127) {
+    result = (result - 256)
+  }
+  return (((result << 8) | (at lsB reading)) - offset)
+}
+
+to '_mpu6050_setup' {
+  if (mpu6050_addr != 0) {return}
+  mpu6050_addr = (hexToInt '68')
+  if (not ('[sensors:i2cExists]' mpu6050_addr)) {
+    mpu6050_addr = (hexToInt '69')
+    if (not ('[sensors:i2cExists]' mpu6050_addr)) {
+      mpu6050_addr = 0
+      sayIt 'MPU6050 not found'
+      stopTask
+    }
+  }
+  mpu6050_addr = (hexToInt '68')
+  comment 'setclockSource  0x01'
+  local 'value' (i2cGet mpu6050_addr (hexToInt '6b'))
+  value = (value & (hexToInt 'F8'))
+  value = (value | (hexToInt '01'))
+  '[sensors:i2cWrite]' mpu6050_addr ('[data:makeList]' (hexToInt '6B') value)
+  comment 'setScale amb MPU6050_SCALE_500DPS -> 0x01'
+  comment 'dpsPerDigit = .060975f'
+  local 'value' (i2cGet mpu6050_addr (hexToInt '1B'))
+  value = (value & (hexToInt 'E7'))
+  value = (value | (1 << 3))
+  '[sensors:i2cWrite]' mpu6050_addr ('[data:makeList]' (hexToInt '1B') value)
+  comment 'setRange amb MPU6050_RANGE_2G -> 0x00'
+  comment 'rangePerDigit = .000061f'
+  local 'value' (i2cGet mpu6050_addr (hexToInt '1C'))
+  value = (value & (hexToInt 'E7'))
+  value = (value | (0 << 3))
+  '[sensors:i2cWrite]' mpu6050_addr ('[data:makeList]' (hexToInt '1C') value)
+  comment 'setSleepEnabled -> false'
+  comment 'registerBit (0x6B,6)'
+  local 'value' (i2cGet mpu6050_addr (hexToInt '6B'))
+  value = (value & ('~' (1 << 6)))
+  '[sensors:i2cWrite]' mpu6050_addr ('[data:makeList]' (hexToInt '6B') value)
+}
+
+to mpu6050_acceleration {
+  local 'x' (mpu6050_tiltX)
+  local 'y' (mpu6050_tiltY)
+  local 'z' (mpu6050_tiltZ)
+  return ('[misc:sqrt]' ((x * x) + ((y * y) + (z * z))))
+}
+
+to mpu6050_calibrate_gyro {
+  local 'sampleCount' 200
+  mpu6050_gyro_offset_x = 0
+  mpu6050_gyro_offset_y = 0
+  mpu6050_gyro_offset_z = 0
+  local 'xSum' 0
+  local 'ySum' 0
+  local 'zSum' 0
+  repeat sampleCount {
+    xSum += ('_mpu6050_raw_gyro' 'x')
+    ySum += ('_mpu6050_raw_gyro' 'y')
+    zSum += ('_mpu6050_raw_gyro' 'z')
+  }
+  mpu6050_gyro_offset_x = (xSum / sampleCount)
+  mpu6050_gyro_offset_y = (ySum / sampleCount)
+  mpu6050_gyro_offset_z = (zSum / sampleCount)
+}
+
+to mpu6050_gyro axis {
+  return (('_mpu6050_raw_gyro' axis) / 4096)
+}
+
+to mpu6050_tiltX {
+  return ('_mpu6050_raw_accel' 'x' -1)
+}
+
+to mpu6050_tiltY {
+  return ('_mpu6050_raw_accel' 'y' 1)
+}
+
+to mpu6050_tiltZ {
+  return ('_mpu6050_raw_accel' 'z' -1)
+}
+
+
+module 'Real Time Clock (KidsBits)' Input
+author MicroBlocks
+version 1 1 
+choices rtc_timeOrDate 'rtc;time (H:M:S)' 'rtc;date (Y-M-D)' 
+choices rtc_component second minute hour day month year 'day of week' 
+description 'Real time clock (RTC).
+
+Simple functions to set and read the current time and date of a real-time clock module.
+With a 3V coin cell battery intalled, the clock will maintain the time and date while powered off.
+
+Currently supports both DS1307 and PCF85063 RTC chips; may be extended to support others in the future.
+
+https://www.analog.com/media/en/technical-documentation/data-sheets/ds1307.pdf
+https://www.nxp.com/docs/en/data-sheet/PCF85063A.pdf
+https://files.seeedstudio.com/wiki/Grove-High_Precision_RTC/res/PCF85063TP.pdf
+
+(Many thanks to Ralf Krause.)
+'
+variables rtc_i2cAddr 
+
+  spec 'r' 'rtc_getTimeOrDate' '#SVG#wave-sine#00c612 clock _' 'menu.rtc_timeOrDate' 'rtc;time (H:M:S)'
+  spec 'r' 'rtc_getComponent' '#SVG#square#00c612 clock _' 'menu.rtc_component' 'second'
+  space
+  spec ' ' 'rtc_setTime' '#SVG#logo#00c612 set hours _ minutes _ seconds _' 'num num num' 9 30 0
+  spec ' ' 'rtc_setDate' '#SVG#square11#00c612 set year _ month _ day _' 'num num num' 2025 1 1
+  spec ' ' 'rtc_setDayOfWeek' '#SVG#square11#00c612 set day of week _ (1-7)' 'num' 1
+  space
+  spec 'r' '_rtc_bcd2dec' '_rtc_bcd2dec _' 'num'
+  spec 'r' '_rtc_dec2bcd' '_rtc_dec2bcd _' 'num'
+  spec 'r' '_rtc_twoDigit' '_rtc_twoDigit _' 'num'
+  spec ' ' '_rtcInit' '_rtcInit'
+  spec 'r' '_rtc_getReg' '_rtc_getReg register _' 'num' 3
+  spec ' ' '_rtc_setReg' '_rtc_setReg register _ value _' 'num num' 3 3
+  spec 'r' '_rtc_mapRegNum' '_rtc_mapRegNum _' 'num' 0
+
+to '_rtcInit' {
+  if (rtc_i2cAddr != 0) {return}
+  if ('[sensors:i2cExists]' (hexToInt '68')) {
+    rtc_i2cAddr = (hexToInt '68')
+  } ('[sensors:i2cExists]' (hexToInt '51')) {
+    rtc_i2cAddr = (hexToInt '51')
+  } else {
+    rtc_i2cAddr = 0
+    sayIt 'No RTC found.'
+  }
+}
+
+to '_rtc_bcd2dec' bcd {
+  comment 'Convert an 8-bit "binary-coded decimal" number to a decimal number in range 0-99'
+  return (((bcd / 16) * 10) + (bcd % 16))
+}
+
+to '_rtc_dec2bcd' decimal {
+  comment 'Convert a decimal in range 0-99 to an 8-bit "binary-coded decimal" value.'
+  decimal = (maximum 0 (minimum decimal 99))
+  return (((decimal / 10) * 16) + (decimal % 10))
+}
+
+to '_rtc_getReg' reg {
+  '_rtcInit'
+  if (rtc_i2cAddr == 0) {
+    return
+  }
+  '[sensors:i2cSetClockSpeed]' 100000
+  result = (i2cGet rtc_i2cAddr ('_rtc_mapRegNum' reg))
+  '[sensors:i2cSetClockSpeed]' 400000
+  return result
+}
+
+to '_rtc_mapRegNum' reg {
+  if ((hexToInt '51') == rtc_i2cAddr) {
+    comment 'Map DS1307 register to equivalent PCF85063 register.
+Order of DS1307 registers is: second minute hour dayOfWeek day month year'
+    reg = (hexToInt (at (reg + 1) '456879A'))
+  }
+  return reg
+}
+
+to '_rtc_setReg' reg value {
+  '_rtcInit'
+  if (rtc_i2cAddr == 0) {
+    return
+  }
+  '[sensors:i2cSetClockSpeed]' 100000
+  i2cSet rtc_i2cAddr ('_rtc_mapRegNum' reg) value
+  '[sensors:i2cSetClockSpeed]' 400000
+}
+
+to '_rtc_twoDigit' n {
+  comment 'Return a two-digit decimal representation for n (range 0-99).'
+  decimal = (maximum 0 (minimum n 99))
+  return ('[data:join]' (ifExpression (n < 10) '0' '') n)
+}
+
+to rtc_getComponent which {
+  local 'component' ('[data:makeList]' 'second' 'minute' 'hour' 'day of week' 'day' 'month' 'year')
+  local 'reg' (('[data:find]' which component) - 1)
+  if (reg < 0) {
+    return 0
+  }
+  local 'result' ('_rtc_bcd2dec' ('_rtc_getReg' reg))
+  return (ifExpression ('year' == which) (2000 + result) result)
+}
+
+to rtc_getTimeOrDate which {
+  local 'i2cAddr' (hexToInt '68')
+  '[sensors:i2cSetClockSpeed]' 100000
+  if ('rtc;time (H:M:S)' == which) {
+    local 'hour' ('_rtc_bcd2dec' (i2cGet i2cAddr 2))
+    local 'minute' ('_rtc_bcd2dec' (i2cGet i2cAddr 1))
+    local 'second' ('_rtc_bcd2dec' ((i2cGet i2cAddr 0) & 127))
+    return ('[data:join]' ('_rtc_twoDigit' hour) ':' ('_rtc_twoDigit' minute) ':' ('_rtc_twoDigit' second))
+  } else {
+    local 'day' ('_rtc_bcd2dec' (i2cGet i2cAddr 4))
+    local 'month' ('_rtc_bcd2dec' (i2cGet i2cAddr 5))
+    local 'year' (('_rtc_bcd2dec' (i2cGet i2cAddr 6)) + 2000)
+    return ('[data:join]' year '-' ('_rtc_twoDigit' month) '-' ('_rtc_twoDigit' day))
+  }
+}
+
+to rtc_setDate year month day {
+  day = (maximum 1 (minimum day 31))
+  month = (maximum 1 (minimum month 12))
+  year = (maximum 0 (minimum (year - 2000) 99))
+  '_rtc_setReg' 4 ('_rtc_dec2bcd' day)
+  '_rtc_setReg' 5 ('_rtc_dec2bcd' month)
+  '_rtc_setReg' 6 ('_rtc_dec2bcd' year)
+}
+
+to rtc_setDayOfWeek weekdayNum {
+  weekdayNum = (maximum 1 (minimum weekdayNum 7))
+  '_rtc_setReg' 3 ('_rtc_dec2bcd' weekdayNum)
+}
+
+to rtc_setTime hours minutes seconds {
+  comment 'Clock is running (bit 7 of seconds = 0) using 24-hour time (bit 6 of hours = 0). '
+  hours = (maximum 0 (minimum hours 23))
+  minutes = (maximum 0 (minimum minutes 59))
+  seconds = (maximum 0 (minimum seconds 59))
+  '_rtc_setReg' 0 ('_rtc_dec2bcd' seconds)
+  '_rtc_setReg' 1 ('_rtc_dec2bcd' minutes)
+  '_rtc_setReg' 2 ('_rtc_dec2bcd' hours)
+}
+
+
+module 'Sensor Primitives' Input
+author MicroBlocks
+version 1 1 
+tags tilt acceleration light sensor capacitive button 
+description 'Provides blocks to read tilt in the three axes, acceleration, temperature and light level. Many boards come with this particular set of sensors, such as the micro:bit, the Circuit Playground Express, the Calliope or the Citilab ED1.'
+
+  spec 'r' '[sensors:tiltX]' 'tilt x'
+  spec 'r' '[sensors:tiltY]' 'tilt y'
+  spec 'r' '[sensors:tiltZ]' 'tilt z'
+  spec 'r' '[display:lightLevel]' 'light level'
+  spec 'r' '[sensors:temperature]' 'temperature (°C)'
+  space
+  spec 'r' '[sensors:touchRead]' 'capacitive sensor _' 'num' 1
+  space
+  spec ' ' '[sensors:i2cSetClockSpeed]' 'set i2c clock speed _' 'num' 400000
+  spec ' ' '[sensors:i2cSetPins]' 'set i2c pins SDA _ SCL _' 'num num' 4 5
+
+module TFT Output
+author MicroBlocks
+version 1 11 
+description 'Draw graphics and write text on boards with a TFT display, such as the M5Stack, M5Stick, Citilab ED1 or (discontinued) IoT-Bus.'
+
+  spec ' ' '[tft:clear]' 'clear TFT display'
+  space
+  spec ' ' '[tft:rect]' 'draw rectangle on TFT at x _ y _ width _ height _ color _ : filled _' 'num num num num color bool' 10 10 40 30 nil true
+  spec ' ' '[tft:roundedRect]' 'draw rounded rectangle on TFT at x _ y _ width _ height _ radius _ color _ : filled _' 'num num num num num color bool' 10 10 40 30 8 nil true
+  spec ' ' '[tft:circle]' 'draw circle on TFT at x _ y _ radius _ color _ : filled _' 'num num num color bool' 40 40 30 nil true
+  spec ' ' '[tft:triangle]' 'draw triangle on TFT at x _ y _ , x _ y _ , x _ y _ color _ : filled _' 'num num num num num num color bool' 20 20 30 80 60 5 nil true
+  spec ' ' '[tft:line]' 'draw line on TFT from x _ y _ to x _ y _ color _' 'num num num num color' 12 8 25 15
+  spec ' ' 'tft_drawVector' 'draw vector x _ y _ angle _ length _ color _' 'num num num num color' 40 40 45 40
+  space
+  spec ' ' '[tft:text]' 'write _ on TFT at x _ y _ color _ : scale _ wrap _ : bg color _' 'str num num color num bool color' 'Hello World!' 5 5 nil 2 true
+  spec ' ' 'tft_drawText' 'draw text _ on TFT at x _ y _ color _ : scale _ : bg color _' 'str num num color num color' 'Line 1
+Line 2' 50 20 nil 2
+  space
+  spec ' ' '[tft:setPixel]' 'set TFT pixel x _ y _ to _' 'num num color' 10 10
+  spec ' ' '[tft:pixelRow]' 'draw pixel row _ x _ y _ : bytesPerPixel _ : palette _' 'auto num num num str' 'aList' 0 0 4
+  spec ' ' '[tft:drawBitmap]' 'draw bitmap _ palette _ on TFT at x _ y _' 'str str num num' 'aBitmap' 'a list of colors' 10 10
+  space
+  spec 'r' 'tft_colorSwatch' '_' 'color'
+  spec 'r' 'makeColor' 'color r _ g _ b _ (0-255)' 'num num num' 0 100 100
+  spec 'r' 'makeGray' 'gray _ %' 'num' 50
+  spec 'r' 'randomColor' 'random color'
+  space
+  spec 'r' '[tft:getWidth]' 'TFT width'
+  spec 'r' '[tft:getHeight]' 'TFT height'
+  space
+  spec ' ' '[tft:setBacklight]' 'set TFT backlight _ (0-10)' 'num' 10
+  space
+  spec ' ' '_deferMonochromeDisplayUpdates' '_defer monochrome display updates'
+  spec ' ' '_resumeMonochromeDisplayUpdates' '_resume monochrome display updates'
+
+to '_deferMonochromeDisplayUpdates' {
+  '[tft:deferUpdates]'
+}
+
+to '_resumeMonochromeDisplayUpdates' {
+  '[tft:resumeUpdates]'
+}
+
+to makeGray percent {
+  gray = ((percent * 255) / 100)
+  gray = (maximum 0 (minimum gray 255))
+  return ((gray << 16) | ((gray << 8) | gray))
+}
+
+to randomColor {
+  local 'n1' (random 100 200)
+  local 'n2' (random 0 100)
+  if (1 == (random 1 3)) {
+    return ((n1 << 16) | (n2 << 8))
+  } (1 == (random 1 2)) {
+    return ((n2 << 16) | n1)
+  } else {
+    return ((n1 << 8) | n2)
+  }
+}
+
+to tft_colorSwatch color {
+  return color
+}
+
+to tft_drawText s x y color optionalScale optionalBGColor {
+  local 'scale' (argOrDefault 5 2)
+  local 'bgColor' (argOrDefault 6 '')
+  local 'lines' ('[data:split]' s ('[data:unicodeString]' 10))
+  for line ('[data:split]' s ('[data:unicodeString]' 10)) {
+    if (isType bgColor 'number') {
+      '[tft:text]' line x y color scale false bgColor
+    } else {
+      '[tft:text]' line x y color scale false
+    }
+    y += (8 * scale)
+  }
+}
+
+to tft_drawVector x y angle length color {
+  local 'endX' (x + ((length * ('[misc:sin]' (100 * (angle + 90)))) >> 14))
+  local 'endY' (y + ((length * ('[misc:sin]' (100 * angle))) >> 14))
+  '[tft:line]' x y endX endY color
+}
+

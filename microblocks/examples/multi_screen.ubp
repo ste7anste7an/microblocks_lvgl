@@ -1,0 +1,410 @@
+module main
+author unknown
+version 1 0 
+description ''
+variables power_measurment 
+
+  spec ' ' 'create_energy_screen' 'create_energy_screen'
+  spec ' ' 'create_heating_screen' 'create_heating_screen'
+  spec ' ' 'create_light_screen' 'create_light_screen'
+  spec ' ' 'create_main_screen' 'create_main_screen'
+  spec ' ' 'heat_arc_temp' 'heat_arc_temp'
+  spec ' ' 'load_energy' 'load_energy'
+  spec ' ' 'load_heating' 'load_heating'
+  spec ' ' 'load_light' 'load_light'
+  spec ' ' 'load_main' 'load_main'
+  spec ' ' 'sw_garage' 'sw_garage'
+  spec ' ' 'sw_kitchen' 'sw_kitchen'
+
+to create_energy_screen {
+  comment 'define energy screen
+
+always start with ''load screen'' : objects are
+drawn on the ''energy'' screen as default'
+  '[tft:LVGLloadscreen]' 'energy'
+  comment 'title'
+  '[tft:LVGLaddlabel]' 'energy_lbl' 2 'Energy'
+  '[tft:LVGLsetpos]' 'energy_lbl' 30 10
+  comment 'back button'
+  '[tft:LVGLaddbtn]' 'energy_back' 2 'Back'
+  '[tft:LVGLsetpos]' 'energy_back' 200 10
+  comment 'set callback'
+  add_callback 'energy_back' 'load_main'
+  comment 'draw arc with text indication'
+  '[tft:LVGLaddlabel]' 'energy_lbl_power' 2 'power [W]'
+  '[tft:LVGLsetpos]' 'energy_lbl_power' 100 200
+  '[tft:LVGLaddobj]' 'arc' 'energy_arc_power'
+  comment 'new range'
+  '[tft:LVGLsetstyle]' 'range' 'energy_arc_power' 1000 4000
+  '[tft:LVGLsetval]' 'energy_arc_power' power_measurment
+  '[tft:LVGLsetpos]' 'energy_arc_power' 100 70
+  '[tft:LVGLaddlabel]' 'energy_power' 2 power_measurment
+  '[tft:LVGLsetpos]' 'energy_power' 140 120
+}
+
+to create_heating_screen {
+  comment 'define heating screen
+
+always start with ''load screen'' : objects are
+drawn on the ''heating'' screen as default'
+  '[tft:LVGLloadscreen]' 'heating'
+  comment 'title'
+  '[tft:LVGLaddlabel]' 'heating_lbl' 2 'Heating'
+  '[tft:LVGLsetpos]' 'heating_lbl' 30 10
+  comment 'back button'
+  '[tft:LVGLaddbtn]' 'heating_back' 2 'Back'
+  '[tft:LVGLsetpos]' 'heating_back' 200 10
+  add_callback 'heating_back' 'load_main'
+  comment 'draw temperature dial'
+  '[tft:LVGLaddlabel]' 'heat_lbl_temp' 2 'temperature'
+  '[tft:LVGLsetpos]' 'heat_lbl_temp' 100 200
+  '[tft:LVGLaddobj]' 'arc' 'heat_arc_temp'
+  comment 'new range'
+  '[tft:LVGLsetstyle]' 'range' 'heat_arc_temp' 10 30
+  '[tft:LVGLsetval]' 'heat_arc_temp' 20
+  '[tft:LVGLsetpos]' 'heat_arc_temp' 100 70
+  '[tft:LVGLaddlabel]' 'heat_temp' 3 ('[tft:LVGLgetval]' 'heat_arc_temp')
+  '[tft:LVGLsetpos]' 'heat_temp' 140 120
+  comment 'callback'
+  add_callback 'heat_arc_temp'
+}
+
+to create_light_screen {
+  comment 'define light screen
+
+always start with ''load screen'' : objects are
+drawn on the ''light'' screen as default'
+  '[tft:LVGLloadscreen]' 'light'
+  comment 'title'
+  '[tft:LVGLaddlabel]' 'light_lbl' 2 'Light'
+  '[tft:LVGLsetpos]' 'light_lbl' 30 10
+  comment 'back button'
+  '[tft:LVGLaddbtn]' 'light_back' 2 'Back'
+  '[tft:LVGLsetpos]' 'light_back' 200 10
+  add_callback 'light_back' 'load_main'
+  comment 'switches'
+  '[tft:LVGLaddobj]' 'switch' 'sw_kitchen'
+  '[tft:LVGLsetpos]' 'sw_kitchen' 200 100
+  '[tft:LVGLsetsize]' 'sw_kitchen' 70 40
+  '[tft:LVGLsetcolor]' 'sw_kitchen' (colorSwatch 148 190 140 255) (colorSwatch 35 190 30 255)
+  '[tft:LVGLaddlabel]' 'light_lbl_kitchen' 2 'kitchen'
+  '[tft:LVGLsetpos]' 'light_lbl_kitchen' 70 100
+  '[tft:LVGLaddobj]' 'switch' 'sw_garage'
+  '[tft:LVGLsetpos]' 'sw_garage' 200 150
+  '[tft:LVGLsetsize]' 'sw_garage' 70 40
+  '[tft:LVGLsetcolor]' 'sw_garage' (colorSwatch 190 152 137 255) (colorSwatch 190 64 18 255)
+  '[tft:LVGLaddlabel]' 'light_lbl_garage' 2 'garage'
+  '[tft:LVGLsetpos]' 'light_lbl_garage' 70 150
+  comment 'callbacks'
+  add_callback 'sw_kitchen'
+  add_callback 'sw_garage'
+}
+
+to create_main_screen {
+  comment 'define main screen for selecting other screens
+
+always start with ''load screen'' : objects are
+drawn on the ''main'' screen as default'
+  '[tft:LVGLloadscreen]' 'main'
+  comment 'title'
+  '[tft:LVGLaddlabel]' 'main_lbl_title' 2 'Main menu'
+  '[tft:LVGLsetpos]' 'main_lbl_title' 30 10
+  comment 'buttons'
+  '[tft:LVGLaddbtn]' 'load_heating' 2 'Heating'
+  '[tft:LVGLsetpos]' 'load_heating' 30 50
+  '[tft:LVGLaddbtn]' 'load_light' 2 'Light'
+  '[tft:LVGLsetpos]' 'load_light' 30 100
+  '[tft:LVGLaddbtn]' 'load_energy' 2 'Energy'
+  '[tft:LVGLsetpos]' 'load_energy' 30 150
+  comment 'define callback for all buttons on main screen'
+  add_callback 'load_heating'
+  add_callback 'load_light'
+  add_callback 'load_energy'
+}
+
+to heat_arc_temp {
+  comment 'callback function for temperature arc'
+  sayIt 'set heating to' ('[tft:LVGLgetval]' 'heat_arc_temp')
+  '[tft:LVGLsettext]' 'heat_temp' ('[tft:LVGLgetval]' 'heat_arc_temp') 3
+}
+
+to load_energy {
+  comment 'callback function for button ''energy'''
+  '[tft:LVGLloadscreen]' 'energy'
+}
+
+to load_heating {
+  comment 'callback function for button ''heating'''
+  '[tft:LVGLloadscreen]' 'heating'
+}
+
+to load_light {
+  comment 'callback function for button ''light'''
+  '[tft:LVGLloadscreen]' 'light'
+}
+
+to load_main {
+  comment 'callback function for button ''back'''
+  '[tft:LVGLloadscreen]' 'main'
+}
+
+to sw_garage {
+  comment 'callback function for garage switch'
+  if ('[tft:LVGLgetval]' 'sw_garage') {
+    sayIt 'light garage switched on'
+  } else {
+    sayIt 'light garage switched off'
+  }
+}
+
+to sw_kitchen {
+  comment 'callback function for kitchen switch'
+  if ('[tft:LVGLgetval]' 'sw_kitchen') {
+    sayIt 'light kitchen switched on'
+  } else {
+    sayIt 'light kitchen switched off'
+  }
+}
+
+script 88 40 {
+whenStarted
+'enable lvgl' true true
+comment 'delete all existing objects'
+delete_all_objects
+comment 'create screens'
+'[tft:LVGLaddobj]' 'screen' 'main'
+'[tft:LVGLaddobj]' 'screen' 'heating'
+'[tft:LVGLaddobj]' 'screen' 'light'
+'[tft:LVGLaddobj]' 'screen' 'energy'
+comment 'need to initialize callback once'
+init_callback
+comment 'create screens'
+create_main_screen
+create_heating_screen
+create_energy_screen
+create_light_screen
+'[tft:LVGLloadscreen]' 'main'
+forever {
+  comment 'handle all callbacks'
+  handle_event
+}
+}
+
+script 565 547 {
+to create_energy_screen {}
+}
+
+script 96 608 {
+to create_main_screen {}
+}
+
+script 80 1128 {
+to create_light_screen {}
+}
+
+script 581 1285 {
+to create_heating_screen {}
+}
+
+script 80 2027 {
+whenStarted
+comment 'emulate power measurement'
+forever {
+  waitMillis 2000
+  power_measurment = (random 1000 4000)
+  comment 'update label and arc to new value'
+  '[tft:LVGLsettext]' 'energy_power' power_measurment
+  '[tft:LVGLsetval]' 'energy_arc_power' power_measurment
+  comment 'if power > 3000 red, power > 2000 orange, otherwise green'
+  if (power_measurment > 3000) {
+    '[tft:LVGLsetcolor]' 'energy_arc_power' (colorSwatch 190 137 122 255) (colorSwatch 190 57 18 255) (colorSwatch 190 30 11 255)
+  } (power_measurment > 2000) {
+    '[tft:LVGLsetcolor]' 'energy_arc_power' (colorSwatch 185 190 128 255) (colorSwatch 190 118 5 255) (colorSwatch 190 131 2 255)
+  } else {
+    '[tft:LVGLsetcolor]' 'energy_arc_power' (colorSwatch 149 190 146 255) (colorSwatch 26 190 8 255) (colorSwatch 11 190 29 255)
+  }
+}
+}
+
+script 80 2661 {
+to heat_arc_temp {}
+}
+
+script 632 2663 {
+to sw_garage {}
+}
+
+script 76 2857 {
+to load_main {}
+}
+
+script 638 2917 {
+to sw_kitchen {}
+}
+
+script 70 3007 {
+to load_heating {}
+}
+
+script 78 3157 {
+to load_light {}
+}
+
+script 76 3311 {
+to load_energy {}
+}
+
+
+module LVGL Output
+author Ste7an
+version 1 10 
+choices attribute_types range rotation angles brightness 'line width' animation digits increment decrement points length 'tick count' 'major tick every' 'show labels' 'scale mode' 'button ctrl' width focused flags 
+choices style_types 'text font' 'text color' 'bg color' 'bg opa' 'border width' 'border color' radius 'shadow width' 'shadow offset x' 'shadow offset y' 'shadow opa' width 'line width' 'line color' 
+choices obj_types arc bar led list roller scale screen slider spinbox spinner style switch tabview tileview keyboard textarea 
+choices symbols bullet audio video list ok close power settings home download drive refresh mute volume_mid volume_max image tint prev play pause stop next eject left right plus minus eye_open eye_close warning shuffle up down loop directory upload call cut copy save bars envelope charge paste bell keyboard gps file wifi battery_full battery_3 battery_2 battery_1 battery_empty usb bluetooth trash edit backspace sd_card new_line 
+choices chart_update_mode shift circular 
+choices scale_modes 'hor top' 'hor bottom' 'ver left' 'ver right' 'round inner' 'round outer' last 
+choices chart_type line bar scatter 
+choices scroll_dirs none hor ver all 
+description 'LVGL support for MicroBlocks'
+variables _lvgl_call_backs 
+
+  spec ' ' 'enable lvgl' 'enable lvgl _ : delete all _' 'bool bool' true true
+  spec ' ' '[tft:LVGLaddbtn]' 'button _ : scale _ : text _ : parent _' 'str num str str' 'button' 1 'button' 'lv_scr_act'
+  spec ' ' '[tft:LVGLaddlabel]' 'label _ : scale _ : text _ : parent _' 'str num str str' 'label' 1 'label' 'lv_scr_act'
+  spec ' ' '[tft:LVGLaddobj]' 'add _ as _ : parent _' 'str.obj_types str str' 'arc' '' 'lv_scr_act'
+  spec ' ' '[tft:LVGLsetpos]' 'set position _ x _ y _' 'str num num' '' 100 100
+  spec ' ' '[tft:LVGLsetsize]' 'set size _ width _ height _' 'str num num' '' 100 10
+  spec ' ' '[tft:LVGLsetval]' 'set value _ value _' 'str num' '' 10
+  spec 'r' '[tft:LVGLgetval]' 'get value _' 'str' ''
+  spec ' ' '[tft:LVGLsettext]' 'set text _ text _ : scale _' 'str str auto' '' 'text' 1
+  spec ' ' '[tft:LVGLsetcolor]' 'set color _ background _ : indicator _ : knob _' 'str color color color' ''
+  spec 'r' 'lvgl_color' '_' 'color'
+  spec 'r' 'makeColor' 'color r _ g _ b _ (0-255)' 'num num num' 0 100 100
+  space
+  spec 'r' '[tft:LVGLevent]' 'event available'
+  spec 'r' '[tft:LVGLgetevent]' 'get event'
+  space
+  spec 'r' 'screen' 'screen'
+  spec 'r' 'symbol' 'symbol _' 'str.symbols' 'bullet'
+  spec ' ' '[tft:LVGLsetparent]' 'set _ parent _ : states _ : parts _' 'str str num num' '' '' 0 0
+  spec 'r' '[tft:LVGLgetallobjs]' 'get all objects'
+  spec ' ' '[tft:LVGLdelobj]' 'delete object _' 'str' ''
+  spec ' ' 'delete_all_objects' 'delete all objects'
+  spec ' ' '[tft:LVGLaddimg]' 'image path _  as  _ : parent _' 'str str str' '' 'img' 'lv_scr_act'
+  spec ' ' '[tft:LVGLaddfont]' 'font path _  as  _' 'str str' '' ''
+  spec ' ' '[tft:LVGLsetattribute]' 'set attribute _ of _ first _ : second _' 'str.attribute_types str auto auto' 'range' '' '' ''
+  spec ' ' '[tft:LVGLsetstyle]' 'set style _ of _ to _' 'str.style_types str auto' 'text font' '' ''
+  spec 'r' 'set_states' 'state pressed _ : checked _ : scrolled _' 'bool bool bool bool' true false false
+  spec 'r' 'set_parts' 'parts selected _ : indicator _ : knob _ : #BR# items _ : scrollbar _' 'bool bool bool bool bool' true false false false false
+  spec 'r' 'set_scale_mode' 'scale mode _' 'str.scale_modes' 'hor top'
+  spec 'r' 'set_button_ctrl' 'button ctrl checkable _ : checked _ : hidden _ : disabled _' 'bool bool bool bool' true false false false
+  spec 'r' 'set_flag' 'behaviour flags hidden _ : clickable _ : checkable _ : scrollable : _ : scroll one _' 'bool bool bool bool bool' false false false false false
+  spec ' ' '[tft:LVGLsetscroll]' 'set scroll direction of _ to _' 'str str.scroll_dirs' '' 'none'
+  spec ' ' '[tft:LVGLloadscreen]' 'load screen _' 'str' ''
+  spec ' ' '[tft:LVGLaddtab]' 'tab _ parent _' 'str str' 'tab' ''
+  spec ' ' '[tft:LVGLaddbuttonmatrix]' 'button matrix _ elements _ : parent _' 'str auto str' '' 'aList' 'lv_scr_act'
+  spec ' ' '[tft:LVGLaddchart]' 'chart _ type _ update mode _ : parent _' 'str str.chart_type str.chart_update_mode str' '' 'line' 'shift' 'lv_scr_act'
+  spec ' ' '[tft:LVGLaddseries]' 'add series _ chart _ color _' 'str str color' '' ''
+  spec ' ' '[tft:LVGLsetnextvalue]' 'add value to series _ from chart _ value _ : value2 _' 'str str num num' '' '' 0 0
+  spec ' ' '[tft:LVGLaddtile]' 'tile _ parent _ col _ row _ #BR# L _ R _ T _ B _' 'str str num num bool bool bool bool' 'tile' '' 0 0 false false false false
+  spec 'r' '[tft:LVGLpsram]' 'get PSRAM'
+  spec ' ' 'init_callback' 'init callback'
+  spec ' ' 'add_callback' 'add callback _ : function _' 'str str' '' ''
+  spec ' ' 'handle_event' 'handle event'
+
+to add_callback obj function {
+  if (not (isType _lvgl_call_backs 'list')) {_lvgl_call_backs = ('[data:makeList]')}
+  if ((pushArgCount) < 2) {
+    '[data:addLast]' ('[data:makeList]' obj obj) _lvgl_call_backs
+  } else {
+    '[data:addLast]' ('[data:makeList]' obj function) _lvgl_call_backs
+  }
+}
+
+to delete_all_objects {
+  local 'all_objects' ('[tft:LVGLgetallobjs]')
+  for i (size all_objects) {
+    if ((at i all_objects) != '!main_screen_default') {'[tft:LVGLdelobj]' (at i all_objects)}
+  }
+  comment 'load original main screen that is stored'
+  '[tft:LVGLloadscreen]' '!main_screen_default'
+}
+
+to 'enable lvgl' enable delete {
+  callCustomCommand '[tft:LVGLon]' ('[data:makeList]' enable)
+  if delete {
+    delete_all_objects
+  }
+}
+
+to handle_event {
+  if ('[tft:LVGLevent]') {
+    local 'var' 1
+    local 'event' ('[tft:LVGLgetevent]')
+    repeatUntil (or (var > (size _lvgl_call_backs)) (event == (at 1 (at var _lvgl_call_backs)))) {
+      var += 1
+    }
+    if (var <= (size _lvgl_call_backs)) {
+      callCustomCommand (at 2 (at var _lvgl_call_backs))
+    }
+  }
+}
+
+to init_callback {
+  _lvgl_call_backs = 0
+}
+
+to lvgl_color color {
+  return color
+}
+
+to makeColor r g b {
+  r = (maximum 0 (minimum r 255))
+  g = (maximum 0 (minimum g 255))
+  b = (maximum 0 (minimum b 255))
+  return ((r << 16) | ((g << 8) | b))
+}
+
+to screen {
+  return 'lv_scr_act'
+}
+
+to set_button_ctrl checkable checked hidden disabled {
+  return (sum (ifExpression checkable (hexToInt '80') 0) (ifExpression checked (hexToInt '100') 0) (ifExpression hidden (hexToInt '10') 0) (ifExpression disabled (hexToInt '40') 0))
+}
+
+to set_flag hidden clickable checkable scrollable scroll_one {
+  return (sum (ifExpression hidden (hexToInt '1') 0) (ifExpression clickable (hexToInt '2') 0) (ifExpression checkable (hexToInt '8') 0) (ifExpression scrollable (hexToInt '10') 0) (ifExpression scroll_one (hexToInt '80') 0))
+}
+
+to set_parts selected indicator knob items scrollbar {
+  return (sum (ifExpression scrollbar (hexToInt '10000') 0) (ifExpression indicator (hexToInt '20000') 0) (ifExpression knob (hexToInt '30000') 0) (ifExpression selected (hexToInt '40000') 0) (ifExpression items (hexToInt '50000') 0))
+}
+
+to set_scale_mode mode {
+  if (mode == 'hor top') {
+    return 0
+  } (mode == 'hor bottom') {
+    return 1
+  } (mode == 'ver left') {
+    return 2
+  } (mode == 'ver right') {
+    return 4
+  } (mode == 'round inner') {
+    return 8
+  } (mode == 'rounde outer') {
+    return 16
+  } else {
+    return 0
+  }
+}
+
+to set_states pressed checked scrolled {
+  return (sum (ifExpression checked 1 0) (ifExpression pressed (hexToInt '20') 0) (ifExpression scrolled (hexToInt '40') 0))
+}
+
+to symbol symbolname {
+  return ('[data:unicodeString]' (callCustomReporter '[tft:LVGLgetsymbol]' ('[data:makeList]' symbolname)))
+}
+

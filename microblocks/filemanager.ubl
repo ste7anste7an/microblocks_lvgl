@@ -1,0 +1,16 @@
+module filemanager
+author Ste7an
+version 1 0 
+description 'Wifi File Manager: allows to upload, downlaod and delete files on the LittleFS filesystem'
+
+  spec ' ' 'start wifi filemanager' 'start wifi filemanager'
+  spec ' ' 'stop wifi filemanager' 'stop wifi filemanager'
+
+to 'start wifi filemanager' {
+  callCustomCommand '[net:startWififilemanager]'
+}
+
+to 'stop wifi filemanager' {
+  callCustomCommand '[net:stopWififilemanager]'
+}
+

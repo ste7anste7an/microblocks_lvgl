@@ -1,0 +1,233 @@
+module main
+author unknown
+version 1 0 
+description ''
+
+script 284 65 {
+whenStarted
+'[tft:clear]'
+forever {
+  waitMillis 10000
+  '[tft:clear]'
+}
+}
+
+script 518 120 {
+whenCondition ('[tft:tftTouched]')
+'[tft:circle]' ('[tft:tftTouchX]') ('[tft:tftTouchY]') 3 (colorSwatch 72 218 233 255)
+sayIt ('[tft:tftTouchX]') ('[tft:tftTouchY]')
+}
+
+
+module 'LED Display' Output
+author MicroBlocks
+version 1 13 
+choices led_imageMenu heart 'small heart' yes no happy sad confused angry asleep surprised silly fabulous meh 't-shirt' 'roller skate' duck house tortoise butterfly 'stick figure' ghost sword giraffe skull umbrella snake rabbit cow 'quarter note' 'eight note' pitchfork target triangle 'left triangle' 'chess board' diamond 'small diamond' square 'small square' scissors 
+description 'Display primitives for the 5x5 LED display on the BBC micro:bit, Calliope mini and M5Atom Matrix. Boards with TFT displays (such as the Citilab ED1 or the M5Stack family) support these primitives with a simulated "fat pixel" display.
+'
+variables _stop_scrolling_text 
+
+  spec ' ' '[display:mbDisplay]' 'display _' 'microbitDisplay' 15237440
+  spec ' ' 'led_displayImage' 'display image _ : x _ y _' 'menu.led_imageMenu num num' 'happy' 1 1
+  spec ' ' '[display:mbDisplayOff]' 'clear display'
+  space
+  spec ' ' '[display:mbPlot]' 'plot x _ y _' 'num num' 3 3
+  spec ' ' '[display:mbUnplot]' 'unplot x _ y _' 'num num' 3 3
+  space
+  spec ' ' 'displayCharacter' 'display character _' 'str' 'A'
+  spec ' ' 'scroll_text' 'scroll text _ : pausing _ ms' 'str num' 'HELLO ROSA!' 100
+  spec ' ' 'stopScrollingText' 'stop scrolling'
+  advanced
+  spec ' ' 'set display color' 'set display color _' 'color'
+  spec 'r' 'led_image' 'led image _' 'microbitDisplay' 15237440
+  space
+  spec 'r' '_led_namedImage' '_led_namedImage _' 'menu.led_imageMenu' 'happy'
+  spec 'r' '_led_imageData' '_led_imageData'
+
+to '_led_imageData' {
+  return 'heart:4685802,small heart:145728,yes:2269696,no:18157905,happy:15237440,sad:18284864,confused:22348096,angry:23036241,asleep:459616,surprised:4526090,silly:25984017,fabulous:15008639,meh:2236443,t-shirt:15154043,roller skate:11534104,duck:489702,house:10976708,tortoise:359872,butterfly:29332475,stick figure:18158564,ghost:23068334,sword:4657284,giraffe:10946627,skull:15171246,umbrella:6460398,snake:469859,rabbit:16104613,cow:4685361,quarter note:7573636,eight note:7590276,pitchfork:4357813,target:4681156,triangle:1026176,left triangle:32805985,chess board:11184810,diamond:4539716,small diamond:141440,square:33080895,small square:469440,scissors:20287859,'
+}
+
+to '_led_namedImage' name {
+  local 'data' ('_led_imageData')
+  local 'i' ('[data:find]' name data)
+  if (i == -1) {
+    comment 'Name not found'
+    return 0
+  }
+  local 'start' (('[data:find]' ':' data i) + 1)
+  local 'end' (('[data:find]' ',' data i) - 1)
+  return ('[data:convertType]' ('[data:copyFromTo]' data start end) 'number')
+}
+
+to displayCharacter s {
+  s = ('[data:join]' '' s)
+  if ((size s) == 0) {
+    '[display:mbDisplayOff]'
+    return 0
+  }
+  '[display:mbDrawShape]' ('[display:mbShapeForLetter]' (at 1 s)) 1 1
+}
+
+to led_displayImage imageName optionalX optionalY {
+  local 'image' imageName
+  if (isType image 'string') {
+    image = ('_led_namedImage' imageName)
+  }
+  '[display:mbDrawShape]' image (argOrDefault 2 1) (argOrDefault 3 1)
+}
+
+to led_image twentyFiveBitInt {
+  comment 'An LED image is a 25-bit integer'
+  return twentyFiveBitInt
+}
+
+to scroll_text text optionalDelay {
+  text = ('[data:join]' '' text)
+  local 'delay' 100
+  if ((pushArgCount) > 1) {
+    delay = optionalDelay
+  }
+  _stop_scrolling_text = (booleanConstant false)
+  if ('Pico:ed' == (boardType)) {
+    for position (((size text) * 6) + 18) {
+      if _stop_scrolling_text {return 0}
+      '[display:mbDisplayOff]'
+      '[tft:text]' text (17 - position) 0 (colorSwatch 125 125 125 255) 1 true
+      waitMillis (delay / 2)
+    }
+  } ('kidsIOT' == (boardType)) {
+    for position (((size text) * 6) + 21) {
+      if _stop_scrolling_text {return 0}
+      '[tft:deferUpdates]'
+      '[tft:clear]'
+      '[tft:text]' text (128 - (6 * position)) 6 (colorSwatch 255 255 255 255) 6 false
+      '[tft:resumeUpdates]'
+      waitMillis (delay / 8)
+    }
+  } else {
+    for position (((size text) * 6) + 6) {
+      if _stop_scrolling_text {return 0}
+      for i (size text) {
+        '[display:mbDrawShape]' ('[display:mbShapeForLetter]' ('[data:unicodeAt]' i text)) (((i * 6) + 2) - position) 1
+      }
+      waitMillis delay
+    }
+  }
+}
+
+to 'set display color' color {
+  '[display:mbSetColor]' color
+}
+
+to stopScrollingText {
+  _stop_scrolling_text = (booleanConstant true)
+  waitMillis 10
+  '[display:mbDisplayOff]'
+}
+
+
+module TFT Output
+author MicroBlocks
+version 1 12 
+description 'Draw graphics and write text on boards with a TFT display, such as the M5Stack, M5Stick, Citilab ED1 or (discontinued) IoT-Bus.'
+
+  spec ' ' '[tft:clear]' 'clear TFT display'
+  space
+  spec ' ' '[tft:rect]' 'draw rectangle on TFT at x _ y _ width _ height _ color _ : filled _' 'num num num num color bool' 10 10 40 30 nil true
+  spec ' ' '[tft:roundedRect]' 'draw rounded rectangle on TFT at x _ y _ width _ height _ radius _ color _ : filled _' 'num num num num num color bool' 10 10 40 30 8 nil true
+  spec ' ' '[tft:circle]' 'draw circle on TFT at x _ y _ radius _ color _ : filled _' 'num num num color bool' 40 40 30 nil true
+  spec ' ' '[tft:triangle]' 'draw triangle on TFT at x _ y _ , x _ y _ , x _ y _ color _ : filled _' 'num num num num num num color bool' 20 20 30 80 60 5 nil true
+  spec ' ' '[tft:line]' 'draw line on TFT from x _ y _ to x _ y _ color _' 'num num num num color' 12 8 25 15
+  spec ' ' 'tft_drawVector' 'draw vector x _ y _ angle _ length _ color _' 'num num num num color' 40 40 45 40
+  space
+  spec ' ' '[tft:text]' 'write _ on TFT at x _ y _ color _ : scale _ wrap _ : bg color _' 'str num num color num bool color' 'Hello World!' 5 5 nil 2 true
+  spec ' ' 'tft_drawText' 'draw text _ on TFT at x _ y _ color _ : scale _ : bg color _' 'str num num color num color' 'Line 1
+Line 2' 50 20 nil 2
+  space
+  spec ' ' '[tft:setPixel]' 'set TFT pixel x _ y _ to _' 'num num color' 10 10
+  spec ' ' '[tft:pixelRow]' 'draw pixel row _ x _ y _ : bytesPerPixel _ : palette _' 'auto num num num str' 'aList' 0 0 4
+  spec ' ' '[tft:drawBitmap]' 'draw bitmap _ palette _ on TFT at x _ y _' 'str str num num' 'aBitmap' 'a list of colors' 10 10
+  space
+  spec 'r' 'tft_colorSwatch' '_' 'color'
+  spec 'r' 'makeColor' 'color r _ g _ b _ (0-255)' 'num num num' 0 100 100
+  spec 'r' 'makeGray' 'gray _ %' 'num' 50
+  spec 'r' 'randomColor' 'random color'
+  space
+  spec 'r' '[tft:getWidth]' 'TFT width'
+  spec 'r' '[tft:getHeight]' 'TFT height'
+  space
+  spec ' ' '[tft:setBacklight]' 'set TFT backlight _ (0-10)' 'num' 10
+  space
+  spec ' ' '_deferMonochromeDisplayUpdates' '_defer monochrome display updates'
+  spec ' ' '_resumeMonochromeDisplayUpdates' '_resume monochrome display updates'
+
+to '_deferMonochromeDisplayUpdates' {
+  '[tft:deferUpdates]'
+}
+
+to '_resumeMonochromeDisplayUpdates' {
+  '[tft:resumeUpdates]'
+}
+
+to makeColor r g b {
+  r = (maximum 0 (minimum r 255))
+  g = (maximum 0 (minimum g 255))
+  b = (maximum 0 (minimum b 255))
+  return ((r << 16) | ((g << 8) | b))
+}
+
+to makeGray percent {
+  gray = ((percent * 255) / 100)
+  gray = (maximum 0 (minimum gray 255))
+  return ((gray << 16) | ((gray << 8) | gray))
+}
+
+to randomColor {
+  local 'n1' (random 100 200)
+  local 'n2' (random 0 100)
+  if (1 == (random 1 3)) {
+    return ((n1 << 16) | (n2 << 8))
+  } (1 == (random 1 2)) {
+    return ((n2 << 16) | n1)
+  } else {
+    return ((n1 << 8) | n2)
+  }
+}
+
+to tft_colorSwatch color {
+  return color
+}
+
+to tft_drawText s x y color optionalScale optionalBGColor {
+  s = ('[data:convertType]' s 'string')
+  local 'scale' (argOrDefault 5 2)
+  local 'bgColor' (argOrDefault 6 '')
+  local 'lines' ('[data:split]' s ('[data:unicodeString]' 10))
+  for line ('[data:split]' s ('[data:unicodeString]' 10)) {
+    if (isType bgColor 'number') {
+      '[tft:text]' line x y color scale false bgColor
+    } else {
+      '[tft:text]' line x y color scale false
+    }
+    y += (8 * scale)
+  }
+}
+
+to tft_drawVector x y angle length color {
+  local 'endX' (x + ((length * ('[misc:sin]' (100 * (angle + 90)))) >> 14))
+  local 'endY' (y + ((length * ('[misc:sin]' (100 * angle))) >> 14))
+  '[tft:line]' x y endX endY color
+}
+
+
+module 'Touch Screen Primitives' Input
+author MicroBlocks
+version 1 0 
+tags qvga touch tft 
+description 'Primitives to support the QVGA touch screen display on the (discontinued) IoT-Bus Io system.'
+
+  spec 'r' '[tft:tftTouched]' 'TFT touched'
+  spec 'r' '[tft:tftTouchX]' 'TFT touch X position'
+  spec 'r' '[tft:tftTouchY]' 'TFT touch Y position'
+  spec 'r' '[tft:tftTouchPressure]' 'TFT touch pressure'

@@ -1,0 +1,274 @@
+module main
+author unknown
+version 1 0 
+description ''
+variables running 
+
+  spec 'r' 'update_val' 'update_val'
+  spec ' ' 'run' 'run'
+  spec ' ' 'slider' 'slider'
+
+to run {
+  sayIt 'run'
+  if running {
+    '[tft:LVGLsettext]' 'run' 'Start' 2
+    running = (booleanConstant false)
+  } else {
+    '[tft:LVGLsettext]' 'run' 'Pause' 2
+    running = (booleanConstant true)
+  }
+  waitMillis 100
+}
+
+to slider {
+  '[tft:LVGLsettext]' 'slider_val' ('[tft:LVGLgetval]' 'slider') 2
+}
+
+to update_val {
+  return 0
+  '[tft:LVGLsettext]' 's_val' (update_val)
+}
+
+script 63 50 {
+whenStarted
+running = (booleanConstant false)
+'enable lvgl' true true
+delete_all_objects
+init_callback
+'[tft:LVGLaddobj]' 'tabview' 'tv' 'lv_scr_act'
+'[tft:LVGLsetscroll]' 'tv' 'none'
+comment 'initialize tabview and start tab'
+'[tft:LVGLaddtab]' 'start' 'tv'
+'[tft:LVGLaddbtn]' 'run' 2 'Start' 'start'
+'[tft:LVGLsetpos]' 'run' 50 80
+'[tft:LVGLsetsize]' 'run' 150 50
+'[tft:LVGLaddobj]' 'slider' 'slider' 'start'
+'[tft:LVGLsetsize]' 'slider' 220 20
+'[tft:LVGLsetpos]' 'slider' 20 10
+'[tft:LVGLaddlabel]' 'slider_val' 2 '0' 'start'
+'[tft:LVGLsetpos]' 'slider_val' 20 40
+comment 'add config tab'
+'[tft:LVGLaddtab]' 'config' 'tv'
+'[tft:LVGLaddbtn]' 'calib' 1 'Calibrate' 'config'
+'[tft:LVGLaddobj]' 'roller' 'opts' 'config'
+'[tft:LVGLsetpos]' 'opts' 120 0
+comment 'add spinbox tab using spinbox library'
+'[tft:LVGLaddtab]' 'config2' 'tv'
+'add spinbox' 'parameter_1' 'config2' 20 0 -1000 1000 2
+'add spinbox' 'parameter_2' 'config2' 20 80 -100 100 0
+'[tft:LVGLaddtab]' 'config3' 'tv'
+'add spinbox' 'parameter_3' 'config3' 20 0 0 10 1
+'add spinbox' 'parameter_4' 'config3' 20 80 -180 180 0
+comment 'add callbacks'
+add_callback 'run'
+add_callback 'slider'
+forever {
+  handle_event
+}
+}
+
+script 703 332 {
+to run {}
+}
+
+script 706 700 {
+to slider {}
+}
+
+
+module LVGL Output
+author Ste7an
+version 1 10 
+choices attribute_types range rotation angles brightness 'line width' animation digits increment decrement points length 'tick count' 'major tick every' 'show labels' 'scale mode' 'button ctrl' width focused flags 
+choices style_types 'text font' 'text color' 'bg color' 'bg opa' 'border width' 'border color' radius 'shadow width' 'shadow offset x' 'shadow offset y' 'shadow opa' width 'line width' 'line color' 
+choices obj_types arc bar led list roller scale screen slider spinbox spinner style switch tabview tileview keyboard textarea 
+choices symbols bullet audio video list ok close power settings home download drive refresh mute volume_mid volume_max image tint prev play pause stop next eject left right plus minus eye_open eye_close warning shuffle up down loop directory upload call cut copy save bars envelope charge paste bell keyboard gps file wifi battery_full battery_3 battery_2 battery_1 battery_empty usb bluetooth trash edit backspace sd_card new_line 
+choices chart_update_mode shift circular 
+choices scale_modes 'hor top' 'hor bottom' 'ver left' 'ver right' 'round inner' 'round outer' last 
+choices chart_type line bar scatter 
+choices scroll_dirs none hor ver all 
+description 'LVGL support for MicroBlocks'
+variables _lvgl_call_backs 
+
+  spec ' ' 'enable lvgl' 'enable lvgl _ : delete all _' 'bool bool' true true
+  spec ' ' '[tft:LVGLaddbtn]' 'button _ : scale _ : text _ : parent _' 'str num str str' 'button' 1 'button' 'lv_scr_act'
+  spec ' ' '[tft:LVGLaddlabel]' 'label _ : scale _ : text _ : parent _' 'str num str str' 'label' 1 'label' 'lv_scr_act'
+  spec ' ' '[tft:LVGLaddobj]' 'add _ as _ : parent _' 'str.obj_types str str' 'arc' '' 'lv_scr_act'
+  spec ' ' '[tft:LVGLsetpos]' 'set position _ x _ y _' 'str num num' '' 100 100
+  spec ' ' '[tft:LVGLsetsize]' 'set size _ width _ height _' 'str num num' '' 100 10
+  spec ' ' '[tft:LVGLsetval]' 'set value _ value _' 'str num' '' 10
+  spec 'r' '[tft:LVGLgetval]' 'get value _' 'str' ''
+  spec ' ' '[tft:LVGLsettext]' 'set text _ text _ : scale _' 'str str auto' '' 'text' 1
+  spec ' ' '[tft:LVGLsetcolor]' 'set color _ background _ : indicator _ : knob _' 'str color color color' ''
+  spec 'r' 'lvgl_color' '_' 'color'
+  spec 'r' 'makeColor' 'color r _ g _ b _ (0-255)' 'num num num' 0 100 100
+  space
+  spec 'r' '[tft:LVGLevent]' 'event available'
+  spec 'r' '[tft:LVGLgetevent]' 'get event'
+  space
+  spec 'r' 'screen' 'screen'
+  spec 'r' 'symbol' 'symbol _' 'str.symbols' 'bullet'
+  spec ' ' '[tft:LVGLsetparent]' 'set _ parent _ : states _ : parts _' 'str str num num' '' '' 0 0
+  spec 'r' '[tft:LVGLgetallobjs]' 'get all objects'
+  spec ' ' '[tft:LVGLdelobj]' 'delete object _' 'str' ''
+  spec ' ' 'delete_all_objects' 'delete all objects'
+  spec ' ' '[tft:LVGLaddimg]' 'image path _  as  _ : parent _' 'str str str' '' 'img' 'lv_scr_act'
+  spec ' ' '[tft:LVGLaddfont]' 'font path _  as  _' 'str str' '' ''
+  spec ' ' '[tft:LVGLsetattribute]' 'set attribute _ of _ first _ : second _' 'str.attribute_types str auto auto' 'range' '' '' ''
+  spec ' ' '[tft:LVGLsetstyle]' 'set style _ of _ to _' 'str.style_types str auto' 'text font' '' ''
+  spec 'r' 'set_states' 'state pressed _ : checked _ : scrolled _' 'bool bool bool bool' true false false
+  spec 'r' 'set_parts' 'parts selected _ : indicator _ : knob _ : #BR# items _ : scrollbar _' 'bool bool bool bool bool' true false false false false
+  spec 'r' 'set_scale_mode' 'scale mode _' 'str.scale_modes' 'hor top'
+  spec 'r' 'set_button_ctrl' 'button ctrl checkable _ : checked _ : hidden _ : disabled _' 'bool bool bool bool' true false false false
+  spec 'r' 'set_flag' 'behaviour flags hidden _ : clickable _ : checkable _ : scrollable : _ : scroll one _' 'bool bool bool bool bool' false false false false false
+  spec ' ' '[tft:LVGLsetscroll]' 'set scroll direction of _ to _' 'str str.scroll_dirs' '' 'none'
+  spec ' ' '[tft:LVGLloadscreen]' 'load screen _' 'str' ''
+  spec ' ' '[tft:LVGLaddtab]' 'tab _ parent _' 'str str' 'tab' ''
+  spec ' ' '[tft:LVGLaddbuttonmatrix]' 'button matrix _ elements _ : parent _' 'str auto str' '' 'aList' 'lv_scr_act'
+  spec ' ' '[tft:LVGLaddchart]' 'chart _ type _ update mode _ : parent _' 'str str.chart_type str.chart_update_mode str' '' 'line' 'shift' 'lv_scr_act'
+  spec ' ' '[tft:LVGLaddseries]' 'add series _ chart _ color _' 'str str color' '' ''
+  spec ' ' '[tft:LVGLsetnextvalue]' 'add value to series _ from chart _ value _ : value2 _' 'str str num num' '' '' 0 0
+  spec ' ' '[tft:LVGLaddtile]' 'tile _ parent _ col _ row _ #BR# L _ R _ T _ B _' 'str str num num bool bool bool bool' 'tile' '' 0 0 false false false false
+  spec 'r' '[tft:LVGLpsram]' 'get PSRAM'
+  spec ' ' 'init_callback' 'init callback'
+  spec ' ' 'add_callback' 'add callback _ : function _' 'str str' '' ''
+  spec ' ' 'handle_event' 'handle event'
+
+to add_callback obj function {
+  if (not (isType _lvgl_call_backs 'list')) {_lvgl_call_backs = ('[data:makeList]')}
+  if ((pushArgCount) < 2) {
+    '[data:addLast]' ('[data:makeList]' obj obj) _lvgl_call_backs
+  } else {
+    '[data:addLast]' ('[data:makeList]' obj function) _lvgl_call_backs
+  }
+}
+
+to delete_all_objects {
+  local 'all_objects' ('[tft:LVGLgetallobjs]')
+  for i (size all_objects) {
+    if ((at i all_objects) != '!main_screen_default') {'[tft:LVGLdelobj]' (at i all_objects)}
+  }
+  comment 'load original main screen that is stored'
+  '[tft:LVGLloadscreen]' '!main_screen_default'
+}
+
+to 'enable lvgl' enable delete {
+  callCustomCommand '[tft:LVGLon]' ('[data:makeList]' enable)
+  if delete {
+    delete_all_objects
+  }
+}
+
+to handle_event {
+  if ('[tft:LVGLevent]') {
+    local 'var' 1
+    local 'event' ('[tft:LVGLgetevent]')
+    repeatUntil (or (var > (size _lvgl_call_backs)) (event == (at 1 (at var _lvgl_call_backs)))) {
+      var += 1
+    }
+    if (var <= (size _lvgl_call_backs)) {
+      callCustomCommand (at 2 (at var _lvgl_call_backs))
+    }
+  }
+}
+
+to init_callback {
+  _lvgl_call_backs = 0
+}
+
+to lvgl_color color {
+  return color
+}
+
+to makeColor r g b {
+  r = (maximum 0 (minimum r 255))
+  g = (maximum 0 (minimum g 255))
+  b = (maximum 0 (minimum b 255))
+  return ((r << 16) | ((g << 8) | b))
+}
+
+to screen {
+  return 'lv_scr_act'
+}
+
+to set_button_ctrl checkable checked hidden disabled {
+  return (sum (ifExpression checkable (hexToInt '80') 0) (ifExpression checked (hexToInt '100') 0) (ifExpression hidden (hexToInt '10') 0) (ifExpression disabled (hexToInt '40') 0))
+}
+
+to set_flag hidden clickable checkable scrollable scroll_one {
+  return (sum (ifExpression hidden (hexToInt '1') 0) (ifExpression clickable (hexToInt '2') 0) (ifExpression checkable (hexToInt '8') 0) (ifExpression scrollable (hexToInt '10') 0) (ifExpression scroll_one (hexToInt '80') 0))
+}
+
+to set_parts selected indicator knob items scrollbar {
+  return (sum (ifExpression scrollbar (hexToInt '10000') 0) (ifExpression indicator (hexToInt '20000') 0) (ifExpression knob (hexToInt '30000') 0) (ifExpression selected (hexToInt '40000') 0) (ifExpression items (hexToInt '50000') 0))
+}
+
+to set_scale_mode mode {
+  if (mode == 'hor top') {
+    return 0
+  } (mode == 'hor bottom') {
+    return 1
+  } (mode == 'ver left') {
+    return 2
+  } (mode == 'ver right') {
+    return 4
+  } (mode == 'round inner') {
+    return 8
+  } (mode == 'rounde outer') {
+    return 16
+  } else {
+    return 0
+  }
+}
+
+to set_states pressed checked scrolled {
+  return (sum (ifExpression checked 1 0) (ifExpression pressed (hexToInt '20') 0) (ifExpression scrolled (hexToInt '40') 0))
+}
+
+to symbol symbolname {
+  return ('[data:unicodeString]' (callCustomReporter '[tft:LVGLgetsymbol]' ('[data:makeList]' symbolname)))
+}
+
+
+module Spinbox Output
+author Anton
+version 1 1 
+description 'Wrapper around spinbox for easy use'
+
+  spec ' ' 'add spinbox' 'add spinbox _ parent _ x _ y _ min _ max _ decimals _' 'str str num num num num num' 'spin' '' 0 0 -1000 1000 2
+  spec ' ' '_spinbox_inc' '_spinbox_inc'
+  spec ' ' '_spinbox_dec' '_spinbox_dec'
+
+to '_spinbox_dec' {
+  local 'spinbox_name' (at 2 ('[data:split]' ('[tft:LVGLgetevent]') '~'))
+  '[tft:LVGLsetattribute]' 'decrement' spinbox_name ''
+}
+
+to '_spinbox_inc' {
+  local 'spinbox_name' (at 2 ('[data:split]' ('[tft:LVGLgetevent]') '~'))
+  '[tft:LVGLsetattribute]' 'increment' spinbox_name ''
+}
+
+to 'add spinbox' name parent x y min max deci {
+  '[tft:LVGLaddlabel]' ('[data:join]' name '_label') 1 name parent
+  '[tft:LVGLsetpos]' ('[data:join]' name '_label') x y
+  local 'inc_button' ('[data:join]' 'inc~' name)
+  '[tft:LVGLaddbtn]' inc_button 2 (symbol 'plus') parent
+  add_callback inc_button '_spinbox_inc'
+  '[tft:LVGLsetpos]' inc_button x (y + 20)
+  '[tft:LVGLaddobj]' 'spinbox' name parent
+  '[tft:LVGLsetpos]' name (x + 50) (y + 20)
+  '[tft:LVGLsetsize]' name 100 47
+  local 'dec_button' ('[data:join]' 'dec~' name)
+  '[tft:LVGLaddbtn]' dec_button 2 (symbol 'minus') parent
+  add_callback dec_button '_spinbox_dec'
+  '[tft:LVGLsetsize]' dec_button 40 45
+  '[tft:LVGLsetpos]' dec_button (x + 160) (y + 20)
+  '[tft:LVGLsetattribute]' 'range' name min max
+  '[tft:LVGLsetattribute]' 'digits' name (maximum (size ('[data:toString]' (absoluteValue min))) (size ('[data:toString]' (absoluteValue max)))) deci
+  comment 'add a style for text of spinbox'
+  '[tft:LVGLaddobj]' 'style' ('[data:join]' 'sty_' name)
+  '[tft:LVGLsetstyle]' 'text font' ('[data:join]' 'sty_' name) 2
+  '[tft:LVGLsetparent]' ('[data:join]' 'sty_' name) name
+}
+

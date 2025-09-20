@@ -1,0 +1,599 @@
+module main
+author unknown
+version 1 0 
+description ''
+
+script 62 62 {
+whenStarted
+neoPixelAttach 9 21
+local 'deltat' 16
+local 'nr' 5
+NeoPixel_brighten_all 100
+forever {
+  local 'white' 0
+  local 'red' 0
+  local 'green' 0
+  local 'blue' 0
+  local 'black' 0
+  neoPixelSetAllToColor (colorSwatch 200 200 200 255)
+  for i nr {
+    local 'var' ('BH1750 ambient light')
+    white += var
+    waitMillis deltat
+  }
+  neoPixelSetAllToColor (colorSwatch 200 0 0 255)
+  for i nr {
+    local 'var' ('BH1750 ambient light')
+    red += var
+    waitMillis deltat
+  }
+  neoPixelSetAllToColor (colorSwatch 0 200 0 255)
+  for i nr {
+    local 'var' ('BH1750 ambient light')
+    green += var
+    waitMillis deltat
+  }
+  neoPixelSetAllToColor (colorSwatch 0 0 200 255)
+  for i nr {
+    local 'var' ('BH1750 ambient light')
+    blue += var
+    waitMillis deltat
+  }
+  sayIt ((1000 * red) / white) ((1000 * green) / white) ((1000 * blue) / white)
+  graphIt ((1000 * red) / white) ((1000 * green) / white) ((1000 * blue) / white)
+}
+}
+
+script 645 1512 {
+neoPixelSetAllToColor (colorSwatch 0 0 0 255)
+for i nr {
+  local 'var' ('BH1750 ambient light')
+  black += var
+  waitMillis deltat
+}
+}
+
+
+module 'HTTP client' Comm
+author MicroBlocks
+version 1 5 
+depends WiFi 
+tags http network get post put delete 
+choices requestTypes GET POST PUT DELETE 
+description 'Send HTTP requests and get responses back. You can use this library to fetch or store data in online servers, or to control other Wifi-enabled boards.
+'
+
+  spec 'r' '_http_body_start' '_http_body_start _' 'auto' ''
+  spec 'r' '_http_header_text' '_http_header_text _' 'auto' ''
+  spec 'r' '_http_status_text' '_http_status_text _' 'auto' ''
+  spec 'r' '_http_header' '_header _ of response _' 'auto auto' 'content-length' ''
+  spec 'r' '_http_status' '_status of response _' 'auto' ''
+  spec 'r' '_line_end' '_line_end'
+  spec 'r' '_lowercase' '_lowercase _' 'auto' 'ABC Def gH'
+  spec 'r' '_request_url' '_request_url _ method _ body _ : port _' 'str menu.requestTypes str num' '' 'GET' '' 80
+  spec 'r' '_readHTTPResponse' '_readHTTPResponse'
+  spec 'r' 'http܃//' 'http #SVG#colon-double-slash _ : port _' 'auto num' 'microblocks.fun/example.txt' 80
+  spec ' ' 'request' '_ data _ to http #SVG#colon-double-slash _ : port _' 'menu.requestTypes str str num' 'POST' 'MicroBlocks is fun' 'microblocks.fun' 80
+
+to '_http_body_start' response {
+  return (('[data:find]' ('[data:unicodeString]' ('[data:makeList]' 13 10 13 10)) response) + 4)
+}
+
+to '_http_header' header response {
+  local 'header text' ('_http_header_text' response)
+  header = ('_lowercase' header)
+  repeatUntil ((size (v 'header text')) < 3) {
+    local 'key' ('[data:copyFromTo]' (v 'header text') 1 (('[data:find]' ':' (v 'header text')) - 1))
+    if (('_lowercase' key) == header) {
+      return ('[data:copyFromTo]' (v 'header text') (('[data:find]' ':' (v 'header text')) + 2) (('[data:find]' ('_line_end') (v 'header text')) - 1))
+    }
+    'header text' = ('[data:copyFromTo]' (v 'header text') (('[data:find]' ('_line_end') (v 'header text')) + 2))
+  }
+  return (booleanConstant false)
+}
+
+to '_http_header_text' response {
+  local 'headersStart' (('[data:find]' ('_line_end') response) + 2)
+  return ('[data:copyFromTo]' response headersStart (('_http_body_start' response) + 2))
+}
+
+to '_http_status' response {
+  return (('[data:copyFromTo]' ('_http_status_text' response) 1 4) + 0)
+}
+
+to '_http_status_text' response {
+  return ('[data:copyFromTo]' response ('[data:find]' ' ' response) ('[data:find]' ('_line_end') response))
+}
+
+to '_line_end' {
+  return ('[data:unicodeString]' ('[data:makeList]' 13 10))
+}
+
+to '_lowercase' string {
+  local 'lowercased' ''
+  local 'char code' ''
+  for c (size string) {
+    'char code' = ('[data:unicodeAt]' c string)
+    if (and ((v 'char code') >= 65) ((v 'char code') <= 90)) {
+      'char code' = ((v 'char code') + 32)
+    }
+    lowercased = ('[data:join]' lowercased ('[data:unicodeString]' (v 'char code')))
+  }
+  return lowercased
+}
+
+to '_readHTTPResponse' {
+  local 'response' ''
+  local 'lastChunkTime' (millisOp)
+  repeatUntil (not ('[net:httpIsConnected]')) {
+    local 'chunk' ('[net:httpResponse]')
+    if ((size chunk) > 0) {
+      response = ('[data:join]' response chunk)
+      lastChunkTime = (millisOp)
+    } (((millisOp) - lastChunkTime) > 10000) {
+      return response
+    }
+    waitMillis 20
+  }
+  response = ('[data:join]' response ('[net:httpResponse]'))
+  return response
+}
+
+to '_request_url' url method body optionalPort {
+  local 'port' 80
+  if ((pushArgCount) > 3) {
+    port = optionalPort
+  }
+  local 'host' ''
+  local 'path' ''
+  local 'slashPosition' ('[data:find]' '/' url)
+  if (slashPosition > 0) {
+    host = ('[data:copyFromTo]' url 1 (slashPosition - 1))
+    path = ('[data:copyFromTo]' url (slashPosition + 1))
+  } else {
+    host = url
+  }
+  if (('[net:wifiStatus]') != 'Connected') {
+    return ('[data:join]' '0 Not Connected' ('_line_end'))
+  }
+  '[net:httpConnect]' host port
+  if (not ('[net:httpIsConnected]')) {
+    return ('[data:join]' '0 Could not connect to server' ('_line_end'))
+  }
+  '[net:httpRequest]' method host path body
+  return ('_readHTTPResponse')
+}
+
+to 'http܃//' url optionalPort {
+  local 'port' 80
+  if ((pushArgCount) > 1) {
+    port = optionalPort
+  }
+  local 'response' ('_request_url' url 'GET' '' port)
+  if (response != '') {
+    if (('_http_status' response) == 200) {
+      return ('[data:copyFromTo]' response ('_http_body_start' response))
+    } else {
+      return ('_http_status_text' response)
+    }
+  } else {
+    return 'Failed to get response'
+  }
+}
+
+to request method data url optionalPort {
+  local 'port' 80
+  if ((pushArgCount) > 3) {
+    port = optionalPort
+  }
+  local 'response' ('_request_url' url method data port)
+  if (response != '') {
+    local 'status' ('_http_status' response)
+    local 'body start' ('_http_body_start' response)
+    if (and (200 == status) ((v 'body start') > 0)) {
+      sayIt ('[data:copyFromTo]' response (v 'body start'))
+    } else {
+      sayIt ('_http_status_text' response)
+    }
+  } else {
+    sayIt 'Failed to get response'
+  }
+}
+
+
+module 'Light (BH1750)' Input
+author MicroBlocks
+version 1 0 
+tags light d1mini 
+description 'Basic BH1750 ambient light sensor library.
+This is the sensor used by the LOLIN D1 mini ambient light shield.'
+variables write read 
+
+  spec 'r' 'BH1750 ambient light' 'BH1750 ambient light'
+
+to 'BH1750 ambient light' {
+  i2cSet (hexToInt '23') 23 (hexToInt '23')
+  read = (newList 2)
+  '[sensors:i2cRead]' (hexToInt '23') read
+  return (((at 1 read) << 8) | (at 2 read))
+}
+
+
+module NeoPixel Output
+author MicroBlocks
+version 1 14 
+description 'Control NeoPixel (WS2812) RGB LED strips and rings.
+'
+variables _np_pixels _np_pin _np_haswhite 
+
+  spec ' ' 'neoPixelAttach' 'attach _ LED NeoPixel strip to pin _ : has white _' 'num auto bool' 10 '' false
+  spec ' ' 'setNeoPixelColors10' 'set NeoPixels _ _ _ _ _ _ _ _ _ _' 'color color color color color color color color color color'
+  spec ' ' 'setNeoPixelColors25' 'set NeoPixels #BR# _ _ _ _ _ #BR# _ _ _ _ _ #BR# _ _ _ _ _ #BR# _ _ _ _ _ #BR# _ _ _ _ _' 'color color color color color color color color color color color color color color color color color color color color color color color color color'
+  spec ' ' 'clearNeoPixels' 'clear NeoPixels'
+  spec ' ' 'neoPixelSetAllToColor' 'set all NeoPixels color _' 'color'
+  spec ' ' 'setNeoPixelColor' 'set NeoPixel _ color _' 'num color' 1
+  space
+  spec 'r' 'neoPixel_colorSwatch' '_' 'color'
+  spec 'r' 'colorFromRGB' 'color r _ g _ b _ (0-255)' 'num num num' 0 100 100
+  spec 'r' 'randomColor' 'random color'
+  space
+  spec ' ' 'rotateNeoPixelsBy' 'rotate NeoPixels by _' 'auto' 1
+  space
+  spec ' ' 'NeoPixel_brighten' 'brighten NeoPixel _ by _' 'num num' 1 10
+  spec ' ' 'NeoPixel_brighten_all' 'brighten all NeoPixels by _' 'num' 10
+  spec ' ' 'NeoPixel_shift_color' 'shift NeoPixel _ color by _' 'num num' 1 10
+  spec ' ' 'NeoPixel_shift_all_colors' 'shift all NeoPixel colors by _' 'num' 10
+  space
+  spec ' ' '_NeoPixel_ensureInitialized' '_NeoPixel_ensureInitialized'
+  spec ' ' '_NeoPixel_increaseRGB' '_NeoPixel_increaseRGB of _ by _' 'num num' 1 10
+  spec ' ' '_NeoPixel_rotate' '_NeoPixel_rotate_left _' 'bool' true
+  spec ' ' '_NeoPixel_update' '_NeoPixel_update'
+  spec ' ' '_NeoPixel_shift_hue' '_NeoPixel_shift_hue of _ by _' 'auto auto' '10' '10'
+
+to NeoPixel_brighten i delta {
+  '_NeoPixel_increaseRGB' i delta
+  '_NeoPixel_update'
+}
+
+to NeoPixel_brighten_all delta {
+  for i (size _np_pixels) {
+    '_NeoPixel_increaseRGB' i delta
+  }
+  '_NeoPixel_update'
+}
+
+to NeoPixel_shift_all_colors delta {
+  for i (size _np_pixels) {
+    '_NeoPixel_shift_hue' i delta
+  }
+  '_NeoPixel_update'
+}
+
+to NeoPixel_shift_color i delta {
+  '_NeoPixel_shift_hue' i delta
+  '_NeoPixel_update'
+}
+
+to '_NeoPixel_ensureInitialized' {
+  if (_np_pixels == 0) {if (or ((boardType) == 'M5Atom-Matrix') (or ((boardType) == 'Mbits') ((boardType) == 'micro:STEAMakers'))) {
+    neoPixelAttach 25 '' false
+  } ((boardType) == 'D1-Mini') {
+    comment 'D1 mini kit'
+    neoPixelAttach 7 15 false
+  } ((boardType) == 'FOXBIT') {
+    neoPixelAttach 35 '' false
+  } ((boardType) == 'CodingBox') {
+    neoPixelAttach 35 '' false
+  } else {
+    neoPixelAttach 10 '' false
+  }}
+}
+
+to '_NeoPixel_increaseRGB' i delta {
+  if (or (i < 1) (i > (size _np_pixels))) {return}
+  local 'rgb' (at i _np_pixels)
+  if (rgb != 0) {
+    local 'h' ('[misc:hue]' rgb)
+    local 's' ('[misc:saturation]' rgb)
+    local 'v' (('[misc:brightness]' rgb) + delta)
+    v = (maximum 20 (minimum v 100))
+    atPut i _np_pixels ('[misc:hsvColor]' h s v)
+  }
+}
+
+to '_NeoPixel_rotate' left {
+  '_NeoPixel_ensureInitialized'
+  local 'length' (size _np_pixels)
+  if left {
+    local 'first' (at 1 _np_pixels)
+    for i (length - 1) {
+      atPut i _np_pixels (at (i + 1) _np_pixels)
+    }
+    atPut length _np_pixels first
+  } else {
+    local 'last' (at length _np_pixels)
+    for i (length - 1) {
+      atPut ((length - i) + 1) _np_pixels (at (length - i) _np_pixels)
+    }
+    atPut 1 _np_pixels last
+  }
+}
+
+to '_NeoPixel_shift_hue' i delta {
+  if (or (i < 1) (i > (size _np_pixels))) {return}
+  local 'rgb' (at i _np_pixels)
+  if (rgb != 0) {
+    local 'h' ((('[misc:hue]' rgb) + delta) % 360)
+    local 's' ('[misc:saturation]' rgb)
+    local 'v' ('[misc:brightness]' rgb)
+    atPut i _np_pixels ('[misc:hsvColor]' h s v)
+  }
+}
+
+to '_NeoPixel_update' {
+  comment 'NeoPixel pin and hasWhite may have been changed by another library.'
+  '[display:neoPixelSetPin]' _np_pin _np_hasWhite
+  '[display:neoPixelSend]' _np_pixels
+  waitMicros 300
+}
+
+to clearNeoPixels {
+  '_NeoPixel_ensureInitialized'
+  atPut 'all' _np_pixels 0
+  '_NeoPixel_update'
+}
+
+to colorFromRGB r g b {
+  r = (maximum 0 (minimum r 255))
+  g = (maximum 0 (minimum g 255))
+  b = (maximum 0 (minimum b 255))
+  return (((r << 16) | (g << 8)) | b)
+}
+
+to neoPixelAttach number pinNumber optionalHasWhite {
+  _np_pin = pinNumber
+  _np_hasWhite = false
+  if ((pushArgCount) > 2) {
+    _np_hasWhite = optionalHasWhite
+  }
+  if (or (_np_pixels == 0) (number != (size _np_pixels))) {
+    _np_pixels = (newList number)
+  }
+  atPut 'all' _np_pixels 0
+  '[display:neoPixelSetPin]' _np_pin _np_hasWhite
+}
+
+to neoPixelSetAllToColor color {
+  '_NeoPixel_ensureInitialized'
+  atPut 'all' _np_pixels color
+  '_NeoPixel_update'
+}
+
+to neoPixel_colorSwatch color {
+  return color
+}
+
+to randomColor {
+  local 'n1' (random 100 200)
+  local 'n2' (random 0 100)
+  if (1 == (random 1 3)) {
+    return ((n1 << 16) | (n2 << 8))
+  } (1 == (random 1 2)) {
+    return ((n2 << 16) | n1)
+  } else {
+    return ((n1 << 8) | n2)
+  }
+}
+
+to rotateNeoPixelsBy n {
+  '_NeoPixel_ensureInitialized'
+  local 'rotateLeft' (n < 0)
+  if (or ((boardType) == 'CircuitPlayground') ((boardType) == 'CircuitPlayground Bluefruit')) {
+    rotateLeft = (n > 0)
+  }
+  repeat (absoluteValue n) {
+    '_NeoPixel_rotate' rotateLeft
+  }
+  '_NeoPixel_update'
+}
+
+to setNeoPixelColor i color {
+  '_NeoPixel_ensureInitialized'
+  if (and (1 <= i) (i <= (size _np_pixels))) {
+    atPut i _np_pixels color
+    '_NeoPixel_update'
+  }
+}
+
+to setNeoPixelColors10 c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 {
+  '_NeoPixel_ensureInitialized'
+  if ((size _np_pixels) >= 1) {
+    atPut 1 _np_pixels c1
+  }
+  if ((size _np_pixels) >= 2) {
+    atPut 2 _np_pixels c2
+  }
+  if ((size _np_pixels) >= 3) {
+    atPut 3 _np_pixels c3
+  }
+  if ((size _np_pixels) >= 4) {
+    atPut 4 _np_pixels c4
+  }
+  if ((size _np_pixels) >= 5) {
+    atPut 5 _np_pixels c5
+  }
+  if ((size _np_pixels) >= 6) {
+    atPut 6 _np_pixels c6
+  }
+  if ((size _np_pixels) >= 7) {
+    atPut 7 _np_pixels c7
+  }
+  if ((size _np_pixels) >= 8) {
+    atPut 8 _np_pixels c8
+  }
+  if ((size _np_pixels) >= 9) {
+    atPut 9 _np_pixels c9
+  }
+  if ((size _np_pixels) >= 10) {
+    atPut 10 _np_pixels c10
+  }
+  '_NeoPixel_update'
+}
+
+to setNeoPixelColors25 c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11 c12 c13 c14 c15 c16 c17 c18 c19 c20 c21 c22 c23 c24 c25 {
+  '_NeoPixel_ensureInitialized'
+  if ((size _np_pixels) >= 1) {
+    atPut 1 _np_pixels c1
+  }
+  if ((size _np_pixels) >= 2) {
+    atPut 2 _np_pixels c2
+  }
+  if ((size _np_pixels) >= 3) {
+    atPut 3 _np_pixels c3
+  }
+  if ((size _np_pixels) >= 4) {
+    atPut 4 _np_pixels c4
+  }
+  if ((size _np_pixels) >= 5) {
+    atPut 5 _np_pixels c5
+  }
+  if ((size _np_pixels) >= 6) {
+    atPut 6 _np_pixels c6
+  }
+  if ((size _np_pixels) >= 7) {
+    atPut 7 _np_pixels c7
+  }
+  if ((size _np_pixels) >= 8) {
+    atPut 8 _np_pixels c8
+  }
+  if ((size _np_pixels) >= 9) {
+    atPut 9 _np_pixels c9
+  }
+  if ((size _np_pixels) >= 10) {
+    atPut 10 _np_pixels c10
+  }
+  if ((size _np_pixels) >= 11) {
+    atPut 11 _np_pixels c11
+  }
+  if ((size _np_pixels) >= 12) {
+    atPut 12 _np_pixels c12
+  }
+  if ((size _np_pixels) >= 13) {
+    atPut 13 _np_pixels c13
+  }
+  if ((size _np_pixels) >= 14) {
+    atPut 14 _np_pixels c14
+  }
+  if ((size _np_pixels) >= 15) {
+    atPut 15 _np_pixels c15
+  }
+  if ((size _np_pixels) >= 16) {
+    atPut 16 _np_pixels c16
+  }
+  if ((size _np_pixels) >= 17) {
+    atPut 17 _np_pixels c17
+  }
+  if ((size _np_pixels) >= 18) {
+    atPut 18 _np_pixels c18
+  }
+  if ((size _np_pixels) >= 19) {
+    atPut 19 _np_pixels c19
+  }
+  if ((size _np_pixels) >= 20) {
+    atPut 20 _np_pixels c20
+  }
+  if ((size _np_pixels) >= 21) {
+    atPut 21 _np_pixels c21
+  }
+  if ((size _np_pixels) >= 22) {
+    atPut 22 _np_pixels c22
+  }
+  if ((size _np_pixels) >= 23) {
+    atPut 23 _np_pixels c23
+  }
+  if ((size _np_pixels) >= 24) {
+    atPut 24 _np_pixels c24
+  }
+  if ((size _np_pixels) >= 25) {
+    atPut 25 _np_pixels c25
+  }
+  '_NeoPixel_update'
+}
+
+
+module WiFi Comm
+author MicroBlocks
+version 1 10 
+tags communication network 
+description 'Connect to a WiFi network. Used in conjunction with other network libraries, such as HTTP client, HTTP server or Web Thing.
+'
+
+  spec ' ' 'wifiConnect' 'wifi connect to _ password _ : IP _ gateway _ subnet _' 'str str auto auto auto' 'Network_Name' '' '192.168.1.42' '192.168.1.1' '255.255.255.0'
+  spec ' ' 'wifiCreateHotspot' 'wifi create hotspot _ password _' 'str str' 'Network_Name' 'Network_Password'
+  spec ' ' '[net:stopWiFi]' 'stop wifi'
+  space
+  spec ' ' '[net:setDomainName]' 'wifi set local domain name _ .local' 'str' 'microblocks'
+  space
+  spec 'r' 'getIPAddress' 'IP address'
+  spec 'r' '[net:myMAC]' 'MAC address'
+  space
+  spec ' ' '[net:allowWiFiAndBLE]' 'allow WiFi while using BLE _' 'bool' true
+
+to getIPAddress {
+  return ('[net:myIPAddress]')
+}
+
+to wifiConnect ssid password fixedIP gatewayIP subnetIP {
+  if (not ('[net:hasWiFi]')) {return}
+  '[net:stopWiFi]'
+  if ((pushArgCount) < 5) {
+    '[net:startWiFi]' ssid password
+  } else {
+    '[net:startWiFi]' ssid password false fixedIP gatewayIP subnetIP
+  }
+  local 'startMSecs' (millisOp)
+  repeatUntil (('[net:myIPAddress]') != '0.0.0.0') {
+    comment 'Timeout after N seconds'
+    if (((millisOp) - startMSecs) > 30000) {
+      sayIt 'Could not connect'
+      return 0
+    }
+    comment 'Slow blink while trying to connect'
+    setUserLED true
+    waitMillis 300
+    setUserLED false
+    waitMillis 300
+  }
+  repeat 6 {
+    comment 'Quick blinks when connected'
+    setUserLED true
+    waitMillis 50
+    setUserLED false
+    waitMillis 50
+  }
+  '[net:setDomainName]' 'microblocks'
+  sayIt 'My IP address is:' ('[net:myIPAddress]')
+}
+
+to wifiCreateHotspot ssid password {
+  if (not ('[net:hasWiFi]')) {return}
+  if ((size password) < 8) {
+    sayIt 'Password must be at least 8 characters'
+    return 0
+  }
+  '[net:startWiFi]' ssid password true
+  if ('Connected' != ('[net:wifiStatus]')) {
+    sayIt 'Could not create hotspot'
+    return 0
+  }
+  repeat 6 {
+    comment 'Quick blinks when connected'
+    setUserLED true
+    waitMillis 50
+    setUserLED false
+    waitMillis 50
+  }
+  '[net:setDomainName]' 'microblocks'
+  sayIt 'My IP address is:' ('[net:myIPAddress]')
+}
+

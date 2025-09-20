@@ -1,0 +1,42 @@
+module Spinbox Output
+author Anton
+version 1 1 
+description 'Wrapper around spinbox for easy use'
+
+  spec ' ' 'add spinbox' 'add spinbox _ parent _ x _ y _ min _ max _ decimals _' 'str str num num num num num' 'spin' '' 0 0 -1000 1000 2
+  spec ' ' '_spinbox_inc' '_spinbox_inc'
+  spec ' ' '_spinbox_dec' '_spinbox_dec'
+
+to '_spinbox_dec' {
+  local 'spinbox_name' (at 2 ('[data:split]' ('[tft:LVGLgetevent]') '~'))
+  '[tft:LVGLsetattribute]' 'decrement' spinbox_name ''
+}
+
+to '_spinbox_inc' {
+  local 'spinbox_name' (at 2 ('[data:split]' ('[tft:LVGLgetevent]') '~'))
+  '[tft:LVGLsetattribute]' 'increment' spinbox_name ''
+}
+
+to 'add spinbox' name parent x y min max deci {
+  '[tft:LVGLaddlabel]' ('[data:join]' name '_label') 1 name parent
+  '[tft:LVGLsetpos]' ('[data:join]' name '_label') x y
+  local 'inc_button' ('[data:join]' 'inc~' name)
+  '[tft:LVGLaddbtn]' inc_button 2 (symbol 'plus') parent
+  add_callback inc_button '_spinbox_inc'
+  '[tft:LVGLsetpos]' inc_button x (y + 20)
+  '[tft:LVGLaddobj]' 'spinbox' name parent
+  '[tft:LVGLsetpos]' name (x + 50) (y + 20)
+  '[tft:LVGLsetsize]' name 100 47
+  local 'dec_button' ('[data:join]' 'dec~' name)
+  '[tft:LVGLaddbtn]' dec_button 2 (symbol 'minus') parent
+  add_callback dec_button '_spinbox_dec'
+  '[tft:LVGLsetsize]' dec_button 40 45
+  '[tft:LVGLsetpos]' dec_button (x + 160) (y + 20)
+  '[tft:LVGLsetattribute]' 'range' name min max
+  '[tft:LVGLsetattribute]' 'digits' name (maximum (size ('[data:toString]' (absoluteValue min))) (size ('[data:toString]' (absoluteValue max)))) deci
+  comment 'add a style for text of spinbox'
+  '[tft:LVGLaddobj]' 'style' ('[data:join]' 'sty_' name)
+  '[tft:LVGLsetstyle]' 'text font' ('[data:join]' 'sty_' name) 2
+  '[tft:LVGLsetparent]' ('[data:join]' 'sty_' name) name
+}
+

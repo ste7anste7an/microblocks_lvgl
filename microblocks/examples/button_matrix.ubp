@@ -1,0 +1,419 @@
+module main
+author unknown
+version 1 0 
+description ''
+
+  spec 'r' 'button name' 'button name _' 'auto' '10'
+  spec 'r' 'is not zero' 'is not zero _' 'auto' '10'
+
+to 'button name' id {
+  comment 'search button name without empty cells'
+  local 'buttons' (list_filter ('[data:makeList]' 'cat' 'dog' 'bird' '' 'whale' 'seal' 'shark' '' 'List' 'Details') 'is not zero')
+  return (at (id + 1) buttons)
+}
+
+to 'is not zero' str {
+  return (str != ('[data:toString]' ''))
+}
+
+script 667 40 {
+whenCondition ('[tft:LVGLevent]')
+if (('[tft:LVGLgetevent]') == 'btns') {
+  local 'id' ('[tft:LVGLgetval]' ('[tft:LVGLgetevent]'))
+  local 'checked' ''
+  if (id > 511) {
+    checked = 'checked'
+  }
+  comment 'get value returns button id; id checked ||512'
+  sayIt ('button name' (id & 511)) checked
+}
+}
+
+script 196 94 {
+whenStarted
+'[tft:LVGLon]' true
+delete_all_objects
+comment 'button matrix is created from list; emtpy element indicates new line'
+local 'buttons' ('[data:makeList]' 'cat' 'dog' 'bird' '' 'whale' 'seal' 'shark' '' 'List' 'Details')
+comment 'create buton matrix'
+'[tft:LVGLaddbuttonmatrix]' 'btns' buttons
+'[tft:LVGLsetsize]' 'btns' 280 240
+comment 'make button with id=7 extra wide'
+'[tft:LVGLsetattribute]' 'width' 'btns' 7 2
+comment 'check button id 6'
+'[tft:LVGLsetattribute]' 'button ctrl' 'btns' 6 (set_button_ctrl false true)
+comment 'make button id=7 checkable'
+'[tft:LVGLsetattribute]' 'button ctrl' 'btns' 7 (set_button_ctrl true)
+comment 'set some styles'
+'[tft:LVGLsetcolor]' 'btns' (colorSwatch 184 238 186 255)
+'[tft:LVGLaddobj]' 'style' 'sty'
+'[tft:LVGLsetstyle]' 'text font' 'sty' 2
+'[tft:LVGLsetstyle]' 'bg color' 'sty' (lvgl_color (colorSwatch 129 188 126 255))
+'[tft:LVGLsetparent]' 'sty' 'btns' 0 (set_parts false false false true)
+}
+
+script 676 489 {
+to 'button name' {}
+}
+
+script 742 515 ('button name' 10)
+
+script 684 761 {
+to 'is not zero' {}
+}
+
+
+module LVGL Output
+author Ste7an
+version 1 10 
+choices attribute_types range rotation angles brightness 'line width' animation digits increment decrement points length 'tick count' 'major tick every' 'show labels' 'scale mode' 'button ctrl' width focused flags 
+choices style_types 'text font' 'text color' 'bg color' 'bg opa' 'border width' 'border color' radius 'shadow width' 'shadow offset x' 'shadow offset y' 'shadow opa' width 'line width' 'line color' 
+choices obj_types arc bar led list roller scale screen slider spinbox spinner style switch tabview tileview keyboard textarea 
+choices symbols bullet audio video list ok close power settings home download drive refresh mute volume_mid volume_max image tint prev play pause stop next eject left right plus minus eye_open eye_close warning shuffle up down loop directory upload call cut copy save bars envelope charge paste bell keyboard gps file wifi battery_full battery_3 battery_2 battery_1 battery_empty usb bluetooth trash edit backspace sd_card new_line 
+choices chart_update_mode shift circular 
+choices scale_modes 'hor top' 'hor bottom' 'ver left' 'ver right' 'round inner' 'round outer' last 
+choices chart_type line bar scatter 
+choices scroll_dirs none hor ver all 
+description 'LVGL support for MicroBlocks'
+variables _lvgl_call_backs 
+
+  spec ' ' 'enable lvgl' 'enable lvgl _ : delete all _' 'bool bool' true true
+  spec ' ' '[tft:LVGLaddbtn]' 'button _ : scale _ : text _ : parent _' 'str num str str' 'button' 1 'button' 'lv_scr_act'
+  spec ' ' '[tft:LVGLaddlabel]' 'label _ : scale _ : text _ : parent _' 'str num str str' 'label' 1 'label' 'lv_scr_act'
+  spec ' ' '[tft:LVGLaddobj]' 'add _ as _ : parent _' 'str.obj_types str str' 'arc' '' 'lv_scr_act'
+  spec ' ' '[tft:LVGLsetpos]' 'set position _ x _ y _' 'str num num' '' 100 100
+  spec ' ' '[tft:LVGLsetsize]' 'set size _ width _ height _' 'str num num' '' 100 10
+  spec ' ' '[tft:LVGLsetval]' 'set value _ value _' 'str num' '' 10
+  spec 'r' '[tft:LVGLgetval]' 'get value _' 'str' ''
+  spec ' ' '[tft:LVGLsettext]' 'set text _ text _ : scale _' 'str str auto' '' 'text' 1
+  spec ' ' '[tft:LVGLsetcolor]' 'set color _ background _ : indicator _ : knob _' 'str color color color' ''
+  spec 'r' 'lvgl_color' '_' 'color'
+  spec 'r' 'makeColor' 'color r _ g _ b _ (0-255)' 'num num num' 0 100 100
+  space
+  spec 'r' '[tft:LVGLevent]' 'event available'
+  spec 'r' '[tft:LVGLgetevent]' 'get event'
+  space
+  spec 'r' 'screen' 'screen'
+  spec 'r' 'symbol' 'symbol _' 'str.symbols' 'bullet'
+  spec ' ' '[tft:LVGLsetparent]' 'set _ parent _ : states _ : parts _' 'str str num num' '' '' 0 0
+  spec 'r' '[tft:LVGLgetallobjs]' 'get all objects'
+  spec ' ' '[tft:LVGLdelobj]' 'delete object _' 'str' ''
+  spec ' ' 'delete_all_objects' 'delete all objects'
+  spec ' ' '[tft:LVGLaddimg]' 'image path _  as  _ : parent _' 'str str str' '' 'img' 'lv_scr_act'
+  spec ' ' '[tft:LVGLaddfont]' 'font path _  as  _' 'str str' '' ''
+  spec ' ' '[tft:LVGLsetattribute]' 'set attribute _ of _ first _ : second _' 'str.attribute_types str auto auto' 'range' '' '' ''
+  spec ' ' '[tft:LVGLsetstyle]' 'set style _ of _ to _' 'str.style_types str auto' 'text font' '' ''
+  spec 'r' 'set_states' 'state pressed _ : checked _ : scrolled _' 'bool bool bool bool' true false false
+  spec 'r' 'set_parts' 'parts selected _ : indicator _ : knob _ : #BR# items _ : scrollbar _' 'bool bool bool bool bool' true false false false false
+  spec 'r' 'set_scale_mode' 'scale mode _' 'str.scale_modes' 'hor top'
+  spec 'r' 'set_button_ctrl' 'button ctrl checkable _ : checked _ : hidden _ : disabled _' 'bool bool bool bool' true false false false
+  spec 'r' 'set_flag' 'behaviour flags hidden _ : clickable _ : checkable _ : scrollable : _ : scroll one _' 'bool bool bool bool bool' false false false false false
+  spec ' ' '[tft:LVGLsetscroll]' 'set scroll direction of _ to _' 'str str.scroll_dirs' '' 'none'
+  spec ' ' '[tft:LVGLloadscreen]' 'load screen _' 'str' ''
+  spec ' ' '[tft:LVGLaddtab]' 'tab _ parent _' 'str str' 'tab' ''
+  spec ' ' '[tft:LVGLaddbuttonmatrix]' 'button matrix _ elements _ : parent _' 'str auto str' '' 'aList' 'lv_scr_act'
+  spec ' ' '[tft:LVGLaddchart]' 'chart _ type _ update mode _ : parent _' 'str str.chart_type str.chart_update_mode str' '' 'line' 'shift' 'lv_scr_act'
+  spec ' ' '[tft:LVGLaddseries]' 'add series _ chart _ color _' 'str str color' '' ''
+  spec ' ' '[tft:LVGLsetnextvalue]' 'add value to series _ from chart _ value _ : value2 _' 'str str num num' '' '' 0 0
+  spec ' ' '[tft:LVGLaddtile]' 'tile _ parent _ col _ row _ #BR# L _ R _ T _ B _' 'str str num num bool bool bool bool' 'tile' '' 0 0 false false false false
+  spec 'r' '[tft:LVGLpsram]' 'get PSRAM'
+  spec ' ' 'init_callback' 'init callback'
+  spec ' ' 'add_callback' 'add callback _ : function _' 'str str' '' ''
+  spec ' ' 'handle_event' 'handle event'
+
+to add_callback obj function {
+  if (not (isType _lvgl_call_backs 'list')) {_lvgl_call_backs = ('[data:makeList]')}
+  if ((pushArgCount) < 2) {
+    '[data:addLast]' ('[data:makeList]' obj obj) _lvgl_call_backs
+  } else {
+    '[data:addLast]' ('[data:makeList]' obj function) _lvgl_call_backs
+  }
+}
+
+to delete_all_objects {
+  local 'all_objects' ('[tft:LVGLgetallobjs]')
+  for i (size all_objects) {
+    if ((at i all_objects) != '!main_screen_default') {'[tft:LVGLdelobj]' (at i all_objects)}
+  }
+  comment 'load original main screen that is stored'
+  '[tft:LVGLloadscreen]' '!main_screen_default'
+}
+
+to 'enable lvgl' enable delete {
+  callCustomCommand '[tft:LVGLon]' ('[data:makeList]' enable)
+  if delete {
+    delete_all_objects
+  }
+}
+
+to handle_event {
+  if ('[tft:LVGLevent]') {
+    local 'var' 1
+    local 'event' ('[tft:LVGLgetevent]')
+    repeatUntil (or (var > (size _lvgl_call_backs)) (event == (at 1 (at var _lvgl_call_backs)))) {
+      var += 1
+    }
+    if (var <= (size _lvgl_call_backs)) {
+      callCustomCommand (at 2 (at var _lvgl_call_backs))
+    }
+  }
+}
+
+to init_callback {
+  _lvgl_call_backs = 0
+}
+
+to lvgl_color color {
+  return color
+}
+
+to makeColor r g b {
+  r = (maximum 0 (minimum r 255))
+  g = (maximum 0 (minimum g 255))
+  b = (maximum 0 (minimum b 255))
+  return ((r << 16) | ((g << 8) | b))
+}
+
+to screen {
+  return 'lv_scr_act'
+}
+
+to set_button_ctrl checkable checked hidden disabled {
+  return (sum (ifExpression checkable (hexToInt '80') 0) (ifExpression checked (hexToInt '100') 0) (ifExpression hidden (hexToInt '10') 0) (ifExpression disabled (hexToInt '40') 0))
+}
+
+to set_flag hidden clickable checkable scrollable scroll_one {
+  return (sum (ifExpression hidden (hexToInt '1') 0) (ifExpression clickable (hexToInt '2') 0) (ifExpression checkable (hexToInt '8') 0) (ifExpression scrollable (hexToInt '10') 0) (ifExpression scroll_one (hexToInt '80') 0))
+}
+
+to set_parts selected indicator knob items scrollbar {
+  return (sum (ifExpression scrollbar (hexToInt '10000') 0) (ifExpression indicator (hexToInt '20000') 0) (ifExpression knob (hexToInt '30000') 0) (ifExpression selected (hexToInt '40000') 0) (ifExpression items (hexToInt '50000') 0))
+}
+
+to set_scale_mode mode {
+  if (mode == 'hor top') {
+    return 0
+  } (mode == 'hor bottom') {
+    return 1
+  } (mode == 'ver left') {
+    return 2
+  } (mode == 'ver right') {
+    return 4
+  } (mode == 'round inner') {
+    return 8
+  } (mode == 'rounde outer') {
+    return 16
+  } else {
+    return 0
+  }
+}
+
+to set_states pressed checked scrolled {
+  return (sum (ifExpression checked 1 0) (ifExpression pressed (hexToInt '20') 0) (ifExpression scrolled (hexToInt '40') 0))
+}
+
+to symbol symbolname {
+  return ('[data:unicodeString]' (callCustomReporter '[tft:LVGLgetsymbol]' ('[data:makeList]' symbolname)))
+}
+
+
+module Lists Data
+author 'per MicroBlocks'
+version 1 9 
+choices pick 'a few' some most 
+description 'Useful functions for working with lists.
+'
+
+  spec 'r' 'list_contains' 'list _ contains _' 'auto auto' 'aList' 'cat'
+  spec 'r' 'list_equals' 'list _ equals _' 'auto auto' 'list1' 'list2'
+  space
+  spec 'r' 'list_circular' 'circular item _ of _' 'auto auto' '10' 'aListOrString'
+  space
+  spec 'r' 'list_map' 'map _ over _' 'str.functionNameMenu auto' 'aFunction' 'aList'
+  spec 'r' 'list_filter' 'filter _ with _' 'auto str.functionNameMenu' 'aList' 'aFunction'
+  spec 'r' 'list_pick' 'pick _ from _' 'menu.pick str' 'some' 'aList'
+  spec 'r' 'list_replace' '_ with _ items replaced by _' 'auto str.pick auto' 'aList' 'indices' 10
+  space
+  spec ' ' 'list_reverse' 'reverse _' 'auto' 'aList'
+  spec ' ' 'list_shuffle' 'shuffle _' 'auto' 'aList'
+  spec ' ' 'list_mergesort' 'sort _' 'auto' 'aList'
+  spec ' ' 'list_unique' 'unique _' 'auto' 'aList'
+  space
+  spec 'r' 'list_shuffled' 'shuffled _' 'auto' 'aList'
+  spec 'r' 'list_reversed' 'reversed _' 'auto' 'aList'
+  spec 'r' 'list_sorted' 'sorted _' 'auto' 'aList'
+  spec 'r' 'list_uniqued' 'uniqued _' 'auto' 'aList'
+  space
+  spec ' ' '_list_mergeStep' '_mergeStep _ _ _ _ _' 'auto num num num auto' 'srcList' 1 2 3 'dstList'
+
+to '_list_mergeStep' src left right end dst {
+  local 'i' left
+  local 'j' right
+  local 'k' left
+  repeatUntil (k > end) {
+    if (and (i < right) (or (j > end) ((at i src) <= (at j src)))) {
+      atPut k dst (at i src)
+      i += 1
+    } else {
+      atPut k dst (at j src)
+      j += 1
+    }
+    k += 1
+  }
+}
+
+to list_circular n list {
+  if (n < 1) {
+    return (at ((size list) - ((absoluteValue n) % (size list))) list)
+  } else {
+    return (at (((n - 1) % (size list)) + 1) list)
+  }
+}
+
+to list_contains aList aValue {
+  for item aList {
+    if (aValue == item) {return (booleanConstant true)}
+  }
+  return (booleanConstant false)
+}
+
+to list_equals list1 list2 {
+  comment 'Recursively compare two list structures and return true if they are equal.
+Note: May not terminate if a list includes itself, either directly or indirectly,
+but such circular list structures are rare in MicroBlocks.'
+  if (list1 == list2) {
+    return (booleanConstant true)
+  }
+  if ((size list1) != (size list2)) {
+    return (booleanConstant false)
+  }
+  for i (size list1) {
+    item1 = (at i list1)
+    item2 = (at i list2)
+    if (item1 != item2) {
+      if (and (isType item1 'list') (isType item2 'list')) {
+        if (not (list_equals item1 item2)) {return (booleanConstant false)}
+      } else {
+        return (booleanConstant false)
+      }
+    }
+  }
+  return (booleanConstant true)
+}
+
+to list_filter src selectionFunction {
+  local 'result' ('[data:makeList]')
+  for item src {
+    if (callCustomReporter selectionFunction ('[data:makeList]' item)) {'[data:addLast]' item result}
+  }
+  return result
+}
+
+to list_map aFunction src {
+  local 'result' ('[data:makeList]')
+  for item src {
+    '[data:addLast]' (callCustomReporter aFunction ('[data:makeList]' item)) result
+  }
+  return result
+}
+
+to list_mergesort src {
+  local 'len' (size src)
+  local 'work list' (newList len)
+  local 'width' 1
+  repeatUntil (width >= len) {
+    local 'i' 1
+    repeatUntil (i > len) {
+      '_list_mergeStep' src i (minimum (i + width) len) (minimum (i + ((2 * width) - 1)) len) (v 'work list')
+      i += (2 * width)
+    }
+    comment 'Copy working list into the source list.'
+    for i len {
+      atPut i src (at i (v 'work list'))
+    }
+    width = (2 * width)
+  }
+}
+
+to list_pick selection list {
+  if (isType selection 'list') {
+    local 'selected' ('[data:makeList]')
+    for i selection {
+      '[data:addLast]' (at i list) selected
+    }
+    return selected
+  } else {
+    local 'amount' (minimum (size list) (maximum 1 (((size list) * (at ('[data:find]' selection ('[data:makeList]' 'a few' 'some' 'most')) ('[data:makeList]' 20 50 80))) / 100)))
+    return (list_sorted ('[data:copyFromTo]' (list_shuffled list) 1 amount))
+  }
+}
+
+to list_replace 'a list' indices replacement {
+  if (indices == '') {return (v 'a list')}
+  if (or (indices == 'a few') (indices == 'some') (indices == 'most')) {indices = (list_pick indices ('[data:range]' 1 (size (v 'a list'))))}
+  local 'new list' ('[data:copyFromTo]' (v 'a list') 1)
+  for i (ifExpression (isType indices 'list') indices ('[data:split]' ('[data:convertType]' indices 'string') ',')) {
+    atPut i (v 'new list') replacement
+  }
+  return (v 'new list')
+}
+
+to list_reverse aList {
+  local 'i' 1
+  local 'j' (size aList)
+  repeatUntil (i >= j) {
+    local 'tmp' (at i aList)
+    atPut i aList (at j aList)
+    atPut j aList tmp
+    i += 1
+    j += -1
+  }
+}
+
+to list_reversed list {
+  local 'new list' ('[data:copyFromTo]' list 1)
+  list_reverse (v 'new list')
+  return (v 'new list')
+}
+
+to list_shuffle aList {
+  local 'len' (size aList)
+  for i len {
+    local 'j' (random 1 len)
+    local 'tmp' (at i aList)
+    atPut i aList (at j aList)
+    atPut j aList tmp
+  }
+}
+
+to list_shuffled list {
+  local 'new list' ('[data:copyFromTo]' list 1)
+  list_shuffle (v 'new list')
+  return (v 'new list')
+}
+
+to list_sorted list {
+  local 'new list' ('[data:copyFromTo]' list 1)
+  list_mergesort (v 'new list')
+  return (v 'new list')
+}
+
+to list_unique list {
+  local 'idx' 1
+  repeatUntil (idx >= (size list)) {
+    local 'item' (at idx list)
+    local 'found' ('[data:find]' item list (idx + 1))
+    repeatUntil (or (found == -1) (idx == found)) {
+      '[data:delete]' found list
+      found = ('[data:find]' item list (idx + 1))
+    }
+    idx += 1
+  }
+}
+
+to list_uniqued list {
+  local 'unique' ('[data:copyFromTo]' list 1)
+  list_unique unique
+  return unique
+}
+

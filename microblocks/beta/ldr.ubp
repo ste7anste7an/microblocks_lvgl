@@ -1,0 +1,241 @@
+module main
+author unknown
+version 1 0 
+description ''
+
+script 62 282 {
+whenStarted
+analogWriteOp 17 1023
+analogWriteOp 16 1023
+local 'var' 0
+forever {
+  var = (1500 - ((analogReadOp 34) / 1))
+  analogWriteOp 4 var
+  graphIt var
+}
+}
+
+
+module 'HTTP client' Comm
+author MicroBlocks
+version 1 5 
+depends WiFi 
+tags http network get post put delete 
+choices requestTypes GET POST PUT DELETE 
+description 'Send HTTP requests and get responses back. You can use this library to fetch or store data in online servers, or to control other Wifi-enabled boards.
+'
+
+  spec 'r' '_http_body_start' '_http_body_start _' 'auto' ''
+  spec 'r' '_http_header_text' '_http_header_text _' 'auto' ''
+  spec 'r' '_http_status_text' '_http_status_text _' 'auto' ''
+  spec 'r' '_http_header' '_header _ of response _' 'auto auto' 'content-length' ''
+  spec 'r' '_http_status' '_status of response _' 'auto' ''
+  spec 'r' '_line_end' '_line_end'
+  spec 'r' '_lowercase' '_lowercase _' 'auto' 'ABC Def gH'
+  spec 'r' '_request_url' '_request_url _ method _ body _ : port _' 'str menu.requestTypes str num' '' 'GET' '' 80
+  spec 'r' '_readHTTPResponse' '_readHTTPResponse'
+  spec 'r' 'http܃//' 'http #SVG#colon-double-slash _ : port _' 'auto num' 'microblocks.fun/example.txt' 80
+  spec ' ' 'request' '_ data _ to http #SVG#colon-double-slash _ : port _' 'menu.requestTypes str str num' 'POST' 'MicroBlocks is fun' 'microblocks.fun' 80
+
+to '_http_body_start' response {
+  return (('[data:find]' ('[data:unicodeString]' ('[data:makeList]' 13 10 13 10)) response) + 4)
+}
+
+to '_http_header' header response {
+  local 'header text' ('_http_header_text' response)
+  header = ('_lowercase' header)
+  repeatUntil ((size (v 'header text')) < 3) {
+    local 'key' ('[data:copyFromTo]' (v 'header text') 1 (('[data:find]' ':' (v 'header text')) - 1))
+    if (('_lowercase' key) == header) {
+      return ('[data:copyFromTo]' (v 'header text') (('[data:find]' ':' (v 'header text')) + 2) (('[data:find]' ('_line_end') (v 'header text')) - 1))
+    }
+    'header text' = ('[data:copyFromTo]' (v 'header text') (('[data:find]' ('_line_end') (v 'header text')) + 2))
+  }
+  return (booleanConstant false)
+}
+
+to '_http_header_text' response {
+  local 'headersStart' (('[data:find]' ('_line_end') response) + 2)
+  return ('[data:copyFromTo]' response headersStart (('_http_body_start' response) + 2))
+}
+
+to '_http_status' response {
+  return (('[data:copyFromTo]' ('_http_status_text' response) 1 4) + 0)
+}
+
+to '_http_status_text' response {
+  return ('[data:copyFromTo]' response ('[data:find]' ' ' response) ('[data:find]' ('_line_end') response))
+}
+
+to '_line_end' {
+  return ('[data:unicodeString]' ('[data:makeList]' 13 10))
+}
+
+to '_lowercase' string {
+  local 'lowercased' ''
+  local 'char code' ''
+  for c (size string) {
+    'char code' = ('[data:unicodeAt]' c string)
+    if (and ((v 'char code') >= 65) ((v 'char code') <= 90)) {
+      'char code' = ((v 'char code') + 32)
+    }
+    lowercased = ('[data:join]' lowercased ('[data:unicodeString]' (v 'char code')))
+  }
+  return lowercased
+}
+
+to '_readHTTPResponse' {
+  local 'response' ''
+  local 'lastChunkTime' (millisOp)
+  repeatUntil (not ('[net:httpIsConnected]')) {
+    local 'chunk' ('[net:httpResponse]')
+    if ((size chunk) > 0) {
+      response = ('[data:join]' response chunk)
+      lastChunkTime = (millisOp)
+    } (((millisOp) - lastChunkTime) > 10000) {
+      return response
+    }
+    waitMillis 20
+  }
+  response = ('[data:join]' response ('[net:httpResponse]'))
+  return response
+}
+
+to '_request_url' url method body optionalPort {
+  local 'port' 80
+  if ((pushArgCount) > 3) {
+    port = optionalPort
+  }
+  local 'host' ''
+  local 'path' ''
+  local 'slashPosition' ('[data:find]' '/' url)
+  if (slashPosition > 0) {
+    host = ('[data:copyFromTo]' url 1 (slashPosition - 1))
+    path = ('[data:copyFromTo]' url (slashPosition + 1))
+  } else {
+    host = url
+  }
+  if (('[net:wifiStatus]') != 'Connected') {
+    return ('[data:join]' '0 Not Connected' ('_line_end'))
+  }
+  '[net:httpConnect]' host port
+  if (not ('[net:httpIsConnected]')) {
+    return ('[data:join]' '0 Could not connect to server' ('_line_end'))
+  }
+  '[net:httpRequest]' method host path body
+  return ('_readHTTPResponse')
+}
+
+to 'http܃//' url optionalPort {
+  local 'port' 80
+  if ((pushArgCount) > 1) {
+    port = optionalPort
+  }
+  local 'response' ('_request_url' url 'GET' '' port)
+  if (response != '') {
+    if (('_http_status' response) == 200) {
+      return ('[data:copyFromTo]' response ('_http_body_start' response))
+    } else {
+      return ('_http_status_text' response)
+    }
+  } else {
+    return 'Failed to get response'
+  }
+}
+
+to request method data url optionalPort {
+  local 'port' 80
+  if ((pushArgCount) > 3) {
+    port = optionalPort
+  }
+  local 'response' ('_request_url' url method data port)
+  if (response != '') {
+    local 'status' ('_http_status' response)
+    local 'body start' ('_http_body_start' response)
+    if (and (200 == status) ((v 'body start') > 0)) {
+      sayIt ('[data:copyFromTo]' response (v 'body start'))
+    } else {
+      sayIt ('_http_status_text' response)
+    }
+  } else {
+    sayIt 'Failed to get response'
+  }
+}
+
+
+module WiFi Comm
+author MicroBlocks
+version 1 10 
+tags communication network 
+description 'Connect to a WiFi network. Used in conjunction with other network libraries, such as HTTP client, HTTP server or Web Thing.
+'
+
+  spec ' ' 'wifiConnect' 'wifi connect to _ password _ : IP _ gateway _ subnet _' 'str str auto auto auto' 'Network_Name' '' '192.168.1.42' '192.168.1.1' '255.255.255.0'
+  spec ' ' 'wifiCreateHotspot' 'wifi create hotspot _ password _' 'str str' 'Network_Name' 'Network_Password'
+  spec ' ' '[net:stopWiFi]' 'stop wifi'
+  space
+  spec ' ' '[net:setDomainName]' 'wifi set local domain name _ .local' 'str' 'microblocks'
+  space
+  spec 'r' 'getIPAddress' 'IP address'
+  spec 'r' '[net:myMAC]' 'MAC address'
+  space
+  spec ' ' '[net:allowWiFiAndBLE]' 'allow WiFi while using BLE _' 'bool' true
+
+to getIPAddress {
+  return ('[net:myIPAddress]')
+}
+
+to wifiConnect ssid password fixedIP gatewayIP subnetIP {
+  if (not ('[net:hasWiFi]')) {return}
+  '[net:stopWiFi]'
+  if ((pushArgCount) < 5) {
+    '[net:startWiFi]' ssid password
+  } else {
+    '[net:startWiFi]' ssid password false fixedIP gatewayIP subnetIP
+  }
+  local 'startMSecs' (millisOp)
+  repeatUntil (('[net:myIPAddress]') != '0.0.0.0') {
+    comment 'Timeout after N seconds'
+    if (((millisOp) - startMSecs) > 30000) {
+      sayIt 'Could not connect'
+      return 0
+    }
+    comment 'Slow blink while trying to connect'
+    setUserLED true
+    waitMillis 300
+    setUserLED false
+    waitMillis 300
+  }
+  repeat 6 {
+    comment 'Quick blinks when connected'
+    setUserLED true
+    waitMillis 50
+    setUserLED false
+    waitMillis 50
+  }
+  '[net:setDomainName]' 'microblocks'
+  sayIt 'My IP address is:' ('[net:myIPAddress]')
+}
+
+to wifiCreateHotspot ssid password {
+  if (not ('[net:hasWiFi]')) {return}
+  if ((size password) < 8) {
+    sayIt 'Password must be at least 8 characters'
+    return 0
+  }
+  '[net:startWiFi]' ssid password true
+  if ('Connected' != ('[net:wifiStatus]')) {
+    sayIt 'Could not create hotspot'
+    return 0
+  }
+  repeat 6 {
+    comment 'Quick blinks when connected'
+    setUserLED true
+    waitMillis 50
+    setUserLED false
+    waitMillis 50
+  }
+  '[net:setDomainName]' 'microblocks'
+  sayIt 'My IP address is:' ('[net:myIPAddress]')
+}
+
