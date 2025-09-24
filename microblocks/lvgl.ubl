@@ -138,7 +138,7 @@ to set_scale_mode mode {
     return 4
   } (mode == 'round inner') {
     return 8
-  } (mode == 'rounde outer') {
+  } (mode == 'round outer') {
     return 16
   } else {
     return 0

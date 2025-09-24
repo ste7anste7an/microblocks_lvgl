@@ -40,6 +40,7 @@ to ColorTab {
   '[tft:LVGLsetsize]' 'switch' 100 50
   '[tft:LVGLaddlabel]' 'label_switch' 2 'Surface' 'Color'
   '[tft:LVGLsetpos]' 'label_switch' 20 0
+  '[tft:LVGLsetval]' 'switch' (booleanConstant true)
   add_callback 'motor'
 }
 
@@ -47,10 +48,12 @@ to MotorTab {
   comment 'Motor tab'
   '[tft:LVGLaddtab]' 'Motor' 'tabs'
   '[tft:LVGLaddobj]' 'arc' 'motor' 'Motor'
-  '[tft:LVGLsetpos]' 'motor' 70 20
+  '[tft:LVGLsetpos]' 'motor' 70 10
   '[tft:LVGLsetattribute]' 'range' 'motor' 0 360
   '[tft:LVGLsetattribute]' 'angles' 'motor' 0 360
   '[tft:LVGLsetattribute]' 'rotation' 'motor' 270
+  '[tft:LVGLaddlabel]' 'label_angle' 2 '180' 'Motor'
+  '[tft:LVGLsetpos]' 'label_angle' 110 60
 }
 
 to bat voltage currrent {
@@ -59,17 +62,24 @@ to bat voltage currrent {
   '[tft:LVGLsettext]' 'label_vol' ('[data:join]' 'Voltage: ' voltage) 2
   '[tft:LVGLsetval]' 'current' currrent
   '[tft:LVGLsettext]' 'label_cur' ('[data:join]' 'Current: ' currrent) 2
+  if (currrent > 500) {
+    '[tft:LVGLsetcolor]' 'current' (colorSwatch 190 48 6 255) (colorSwatch 254 50 9 255)
+  } (currrent > 200) {
+    '[tft:LVGLsetcolor]' 'current' (colorSwatch 239 248 18 255) (colorSwatch 242 251 11 255)
+  } else {
+    '[tft:LVGLsetcolor]' 'current' (colorSwatch 53 248 17 255) (colorSwatch 59 255 23 255)
+  }
 }
 
 to color r g b {
   comment 'microPUP callback for color command'
-  sayIt r g b ('[tft:LVGLgetval]' 'switch')
   '[tft:LVGLsetcolor]' 'led' (makeColor r g b)
   return ('[data:convertType]' ('[tft:LVGLgetval]' 'switch') 'number')
 }
 
 to motor {
   comment 'LVGL callback for motor arc'
+  '[tft:LVGLsettext]' 'label_angle' ('[tft:LVGLgetval]' 'motor') 2
   return ('[tft:LVGLgetval]' 'motor')
 }
 
@@ -99,11 +109,11 @@ forever {
 }
 }
 
-script 1009 194 {
+script 723 145 {
 to bat {}
 }
 
-script 1012 570 {
+script 1047 657 {
 to color {}
 }
 
@@ -115,7 +125,7 @@ script 797 827 {
 to MotorTab {}
 }
 
-script 809 1115 {
+script 804 1175 {
 to ColorTab {}
 }
 
@@ -271,6 +281,83 @@ to set_states pressed checked scrolled {
 
 to symbol symbolname {
   return ('[data:unicodeString]' (callCustomReporter '[tft:LVGLgetsymbol]' ('[data:makeList]' symbolname)))
+}
+
+
+module WiFi Comm
+author MicroBlocks
+version 1 10 
+tags communication network 
+description 'Connect to a WiFi network. Used in conjunction with other network libraries, such as HTTP client, HTTP server or Web Thing.
+'
+
+  spec ' ' 'wifiConnect' 'wifi connect to _ password _ : IP _ gateway _ subnet _' 'str str auto auto auto' 'Network_Name' '' '192.168.1.42' '192.168.1.1' '255.255.255.0'
+  spec ' ' 'wifiCreateHotspot' 'wifi create hotspot _ password _' 'str str' 'Network_Name' 'Network_Password'
+  spec ' ' '[net:stopWiFi]' 'stop wifi'
+  space
+  spec ' ' '[net:setDomainName]' 'wifi set local domain name _ .local' 'str' 'microblocks'
+  space
+  spec 'r' 'getIPAddress' 'IP address'
+  spec 'r' '[net:myMAC]' 'MAC address'
+  space
+  spec ' ' '[net:allowWiFiAndBLE]' 'allow WiFi while using BLE _' 'bool' true
+
+to getIPAddress {
+  return ('[net:myIPAddress]')
+}
+
+to wifiConnect ssid password fixedIP gatewayIP subnetIP {
+  if (not ('[net:hasWiFi]')) {return}
+  '[net:stopWiFi]'
+  if ((pushArgCount) < 5) {
+    '[net:startWiFi]' ssid password
+  } else {
+    '[net:startWiFi]' ssid password false fixedIP gatewayIP subnetIP
+  }
+  local 'startMSecs' (millisOp)
+  repeatUntil (('[net:myIPAddress]') != '0.0.0.0') {
+    comment 'Timeout after N seconds'
+    if (((millisOp) - startMSecs) > 30000) {
+      sayIt 'Could not connect'
+      return 0
+    }
+    comment 'Slow blink while trying to connect'
+    setUserLED true
+    waitMillis 300
+    setUserLED false
+    waitMillis 300
+  }
+  repeat 6 {
+    comment 'Quick blinks when connected'
+    setUserLED true
+    waitMillis 50
+    setUserLED false
+    waitMillis 50
+  }
+  '[net:setDomainName]' 'microblocks'
+  sayIt 'My IP address is:' ('[net:myIPAddress]')
+}
+
+to wifiCreateHotspot ssid password {
+  if (not ('[net:hasWiFi]')) {return}
+  if ((size password) < 8) {
+    sayIt 'Password must be at least 8 characters'
+    return 0
+  }
+  '[net:startWiFi]' ssid password true
+  if ('Connected' != ('[net:wifiStatus]')) {
+    sayIt 'Could not create hotspot'
+    return 0
+  }
+  repeat 6 {
+    comment 'Quick blinks when connected'
+    setUserLED true
+    waitMillis 50
+    setUserLED false
+    waitMillis 50
+  }
+  '[net:setDomainName]' 'microblocks'
+  sayIt 'My IP address is:' ('[net:myIPAddress]')
 }
 
 
