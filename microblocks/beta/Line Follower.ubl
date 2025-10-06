@@ -1,0 +1,125 @@
+module 'Line Follower' Input
+author Ste7an
+version 1 3 
+choices commands val_raw val_cal val_dig get_min get_max get_avg calibrate print_cal version position invert 
+description 'I2C Line follower on ch32v203'
+variables _buf _line_plot _line_buf a _inverted _nr_sensors 
+
+  spec ' ' 'init_line' 'init line _ plot _' 'num bool' 8 true
+  spec 'r' 'read line' 'read line'
+  spec 'r' 'bar_nr' 'bar_nr _' 'auto' '10'
+  spec ' ' 'command' 'command _ : value _' 'str.commands auto' 'val_raw' true
+  spec ' ' 'invert' 'invert _' 'bool' true
+  spec 'r' 'get position' 'get position'
+  spec ' ' 'set emitter level' 'set emitter level _' 'auto' '10'
+  spec ' ' 'set calibration' 'set calibration _ values _' 'auto auto' 10 '10'
+
+to bar_nr nr {
+  return ('[data:join]' 'bar' nr)
+}
+
+to command cmd {
+  local 'cmd_id' 0
+  if (cmd == 'mode raw') {
+    cmd_id = 0
+  } (cmd == 'mode calibrated') {
+    cmd_id = 1
+  } (cmd == 'mode digigtal') {
+    cmd_id = 2
+  } (cmd == 'calibrate') {
+    cmd_id = 3
+  } (cmd == 'get minimum') {
+    cmd_id = 4
+  } (cmd == 'get maximum') {
+    cmd_id = 5
+  } (cmd == 'get average') {
+    cmd_id = 6
+  } (cmd == 'is calibrated') {
+    cmd_id = 7
+  } (cmd == 'print calibration') {
+    cmd_id = 8
+  } (cmd == 'set minimum') {
+    cmd_id = 9
+  } (cmd == 'set maximum') {
+    cmd_id = 10
+  } (cmd == 'get version') {
+    cmd_id = 11
+  } (cmd == 'debug') {
+    cmd_id = 12
+  } (cmd == 'get position') {
+    cmd_id = 13
+  } (cmd == 'set emitter') {
+    cmd_id = 14
+  }
+  local 'buf' ('[data:makeList]' cmd_id)
+  '[sensors:i2cWrite]' 51 buf
+}
+
+to 'get position' {
+  local 'adc' 0
+  local 'sum' 0
+  local 'weightsum' 0
+  local 'start_weight' ((-1 * (20 / 2)) * (_nr_sensors - 1))
+  adc = ('read line')
+  for i _nr_sensors {
+    sum = (sum + (at i adc))
+    weightsum = (weightsum + ((start_weight + (20 * i)) * (at i adc)))
+  }
+  if (sum != 0) {
+    return ((weightsum * 10) / sum)
+  }
+  return 0
+}
+
+to init_line 'number of sensors' plot {
+  _nr_sensors = (v 'number of sensors')
+  _line_plot = plot
+  _inverted = (booleanConstant false)
+  if plot {
+    'enable lvgl' true true
+    for i _nr_sensors {
+      '[tft:LVGLaddobj]' 'bar' (bar_nr i)
+      '[tft:LVGLsetsize]' (bar_nr i) 15 100
+      '[tft:LVGLsetpos]' (bar_nr i) (i * 20) 20
+      '[tft:LVGLsetcolor]' (bar_nr i) (colorSwatch 190 29 9 255) (colorSwatch 255 0 10 255)
+      '[tft:LVGLsetattribute]' 'range' (bar_nr i) 0 255
+    }
+  }
+  _line_buf = (newList _nr_sensors)
+}
+
+to invert inverted {
+  _inverted = inverted
+}
+
+to 'read line' {
+  '[sensors:i2cRead]' 51 _line_buf
+  if _inverted {
+    for i _nr_sensors {
+      atPut i _line_buf (255 - (at i _line_buf))
+    }
+  }
+  if _line_plot {
+    for i _nr_sensors {
+      '[tft:LVGLsetval]' (bar_nr i) (at i _line_buf)
+    }
+  }
+  return _line_buf
+}
+
+to 'set calibration' minmax values {
+  if ((size values) != _nr_sensors) {
+    sayIt 'length of value array is not equal to number of sensors'
+  } else {
+    if (minmax == 'min') {
+      '[sensors:i2cWrite]' 51 ('[data:join]' ('[data:makeList]' 4) values)
+    } else {
+      '[sensors:i2cWrite]' 51 ('[data:join]' ('[data:makeList]' 5) values)
+    }
+  }
+}
+
+to 'set emitter level' level {
+  '[sensors:i2cWrite]' 51 ('[data:makeList]' 14 level)
+}
+
