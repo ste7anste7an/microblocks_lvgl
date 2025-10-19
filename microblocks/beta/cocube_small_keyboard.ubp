@@ -2,66 +2,195 @@ module main
 author unknown
 version 1 0 
 description ''
-variables hor ver 
+variables text list_text capital 
 
-script 50 50 {
+  spec ' ' 'btns' 'btns'
+  spec ' ' 'char_but' 'char_but'
+  spec ' ' 'num_but' 'num_but'
+  spec ' ' 'show_rollers' 'show_rollers'
+  spec ' ' 'show_text' 'show_text'
+  spec ' ' 'sym_but' 'sym_but'
+
+to btns {
+  waitMillis 100
+  local 'btn' (('[tft:LVGLgetval]' 'btns') % 512)
+  local 'checked' (('[tft:LVGLgetval]' 'btns') > 511)
+  if (btn == 0) {
+    '[data:delete]' 'last' text
+    show_text
+  } (btn == 2) {
+    sayIt 'Entered:' ('[data:joinStrings]' text)
+  } (btn == 1) {
+    capital = checked
+    sayIt capital
+  } else {
+  }
+}
+
+to char_but {
+  local 'char' ('[tft:LVGLgetval]' 'chars')
+  if (not capital) {
+    char = ('[data:unicodeString]' (('[data:unicodeAt]' 1 ('[tft:LVGLgetval]' 'chars')) + 32))
+  }
+  '[data:addLast]' char text
+  show_text
+}
+
+to num_but {
+  '[data:addLast]' ('[tft:LVGLgetval]' 'nums') text
+  '[tft:LVGLsettext]' 'ta' text
+  show_text
+}
+
+to show_rollers {
+  '[tft:LVGLaddobj]' 'roller' 'chars'
+  '[tft:LVGLsettext]' 'chars' 'A
+B
+C
+D
+F
+G
+H
+I
+J
+K
+L
+M
+N
+O
+P
+Q
+R
+S
+T
+U
+V
+W
+X
+Y
+Z
+  '
+  '[tft:LVGLsetpos]' 'chars' 10 55
+  '[tft:LVGLaddobj]' 'roller' 'nums'
+  '[tft:LVGLsettext]' 'nums' '0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+ '
+  '[tft:LVGLsetpos]' 'nums' 60 55
+  '[tft:LVGLaddobj]' 'roller' 'symbols'
+  '[tft:LVGLsettext]' 'symbols' '!
+@
+#
+$
+%
+^
+&
+*
+(
+)
+-
+_
+=
++
+`
+~
+<
+>
+,
+.
+/
+?
+\
+|
+;
+:
+''"
+ '
+  '[tft:LVGLsetpos]' 'symbols' 110 55
+}
+
+to show_text {
+  '[tft:LVGLsettext]' 'ta' ('[data:joinStrings]' text)
+}
+
+to sym_but {
+  '[data:addLast]' ('[tft:LVGLgetval]' 'symbols') text
+  '[tft:LVGLsettext]' 'ta' text
+  show_text
+}
+
+script 323 50 {
 whenStarted
 'enable lvgl' true true
-delete_all_objects
-'[tft:LVGLaddbtn]' 'Up' 1
-'[tft:LVGLsetcolor]' 'Up' (colorSwatch 30 13 190 255)
-'[tft:LVGLsetpos]' 'Up' 190 50
-'[tft:LVGLaddbtn]' 'Down' 1
-'[tft:LVGLsetcolor]' 'Down' (colorSwatch 35 190 30 255)
-'[tft:LVGLsetpos]' 'Down' 190 150
-'[tft:LVGLaddbtn]' 'Left' 1
-'[tft:LVGLsetcolor]' 'Left' (colorSwatch 230 250 8 255) (colorSwatch 4 4 4 255)
-'[tft:LVGLsetpos]' 'Left' 160 100
-'[tft:LVGLaddbtn]' 'Right' 1
-'[tft:LVGLsetcolor]' 'Right' (colorSwatch 190 58 12 255)
-'[tft:LVGLsetpos]' 'Right' 220 100
-'[tft:LVGLaddobj]' 'bar' 'hor_bar'
-'[tft:LVGLsetsize]' 'hor_bar' 150 20
-'[tft:LVGLsetpos]' 'hor_bar' 160 210
-'[tft:LVGLsetval]' 'hor_bar' 30
-'[tft:LVGLaddobj]' 'bar' 'ver_bar'
-'[tft:LVGLsetsize]' 'ver_bar' 20 150
-'[tft:LVGLsetpos]' 'ver_bar' 290 10
-'[tft:LVGLsetval]' 'ver_bar' 30
-'[tft:LVGLaddobj]' 'arc' 'arc'
-'[tft:LVGLsetcolor]' 'arc' (colorSwatch 252 208 202 255) (colorSwatch 255 66 11 255) (colorSwatch 249 27 12 255)
-'[tft:LVGLsetpos]' 'arc' 20 50
-'[tft:LVGLsetval]' 'arc' 10
-'[tft:LVGLaddlabel]' 'Volume' 2
-'[tft:LVGLsetpos]' 'Volume' 40 10
-'[tft:LVGLaddlabel]' 'Val' 3
-'[tft:LVGLsetcolor]' 'Val' (colorSwatch 248 52 13 255)
-'[tft:LVGLsetpos]' 'Val' 60 90
-'[tft:LVGLsettext]' 'Val' ('[data:convertType]' ('[tft:LVGLgetval]' 'arc') 'string') 3
-hor = 50
-ver = 50
-'[tft:LVGLsetval]' 'hor_bar' hor
-'[tft:LVGLsetval]' 'ver_bar' ver
+init_callback
+'[tft:LVGLaddbtn]' 'char_but' 1 (symbol 'ok')
+'[tft:LVGLsetpos]' 'char_but' 10 190
+'[tft:LVGLaddbtn]' 'num_but' 1 (symbol 'ok')
+'[tft:LVGLsetpos]' 'num_but' 60 190
+'[tft:LVGLaddbtn]' 'sym_but' 1 (symbol 'ok')
+'[tft:LVGLsetpos]' 'sym_but' 110 190
+show_rollers
+add_callback 'char_but'
+add_callback 'num_but'
+add_callback 'sym_but'
+'[tft:LVGLaddobj]' 'textarea' 'ta'
+'[tft:LVGLaddobj]' 'style' 'sty'
+'[tft:LVGLsetstyle]' 'text font' 'sty' 1
+'[tft:LVGLsetparent]' 'sty' 'ta'
+'[tft:LVGLsetpos]' 'ta' 30 0
+'[tft:LVGLsetsize]' 'ta' 200 50
+'[tft:LVGLaddbuttonmatrix]' 'btns' ('[data:makeList]' (symbol 'backspace') '' (symbol 'upload') '' (symbol 'new_line'))
+'[tft:LVGLsetattribute]' 'button ctrl' 'btns' 1 (set_button_ctrl true true)
+'[tft:LVGLaddobj]' 'style' 'sty2'
+'[tft:LVGLsetstyle]' 'text font' 'sty2' 2
+'[tft:LVGLsetparent]' 'sty2' 'btns'
+'[tft:LVGLsetpos]' 'btns' 170 80
+'[tft:LVGLsetsize]' 'btns' 100 150
+add_callback 'btns'
+'[tft:LVGLaddgroup]' 'char_but'
+'[tft:LVGLaddgroup]' 'num_but'
+'[tft:LVGLaddgroup]' 'sym_but'
+'[tft:LVGLaddgroup]' 'btns'
+'[tft:LVGLaddgroup]' 'chars'
+'[tft:LVGLaddgroup]' 'nums'
+'[tft:LVGLaddgroup]' 'symbols'
+capital = (booleanConstant true)
+text = ('[data:makeList]')
+'[tft:LVGLsettext]' 'ta' ''
+forever {
+  handle_event
+}
 }
 
-script 696 204 {
-whenCondition ('[tft:LVGLevent]')
-local 'obj' ('[tft:LVGLgetevent]')
-if (obj == 'Up') {
-  ver += 10
-  '[tft:LVGLsetval]' 'ver_bar' ver
-} (obj == 'Down') {
-  ver += -10
-  '[tft:LVGLsetval]' 'ver_bar' ver
-} (obj == 'Left') {
-  hor += -10
-  '[tft:LVGLsetval]' 'hor_bar' hor
-} (obj == 'Right') {
-  hor += 10
-  '[tft:LVGLsetval]' 'hor_bar' hor
-} (obj == 'arc') {
-  '[tft:LVGLsettext]' 'Val' ('[data:convertType]' ('[tft:LVGLgetval]' 'arc') 'string') 3
+script 50 706 {
+to show_rollers {}
 }
+
+script 814 739 {
+to show_text {}
+}
+
+script 574 907 {
+to char_but {}
+}
+
+script 870 1169 {
+to num_but {}
+}
+
+script 727 1342 {
+to sym_but {}
+}
+
+script 349 1409 {
+to btns {}
 }
 
 
@@ -113,6 +242,7 @@ variables _lvgl_call_backs
   spec ' ' '[tft:LVGLsetscroll]' 'set scroll direction of _ to _' 'str str.scroll_dirs' '' 'none'
   spec ' ' '[tft:LVGLloadscreen]' 'load screen _' 'str' ''
   spec ' ' '[tft:LVGLaddtab]' 'tab _ parent _' 'str str' 'tab' ''
+  spec ' ' '[tft:LVGLaddgroup]' 'group add _' 'str' ''
   spec ' ' '[tft:LVGLaddbuttonmatrix]' 'button matrix _ elements _ : parent _' 'str auto str' '' 'aList' 'lv_scr_act'
   spec ' ' '[tft:LVGLaddchart]' 'chart _ type _ update mode _ : parent _' 'str str.chart_type str.chart_update_mode str' '' 'line' 'shift' 'lv_scr_act'
   spec ' ' '[tft:LVGLaddseries]' 'add series _ chart _ color _' 'str str color' '' ''
@@ -203,7 +333,7 @@ to set_scale_mode mode {
     return 4
   } (mode == 'round inner') {
     return 8
-  } (mode == 'rounde outer') {
+  } (mode == 'round outer') {
     return 16
   } else {
     return 0
@@ -216,5 +346,85 @@ to set_states pressed checked scrolled {
 
 to symbol symbolname {
   return ('[data:unicodeString]' (callCustomReporter '[tft:LVGLgetsymbol]' ('[data:makeList]' symbolname)))
+}
+
+
+module WiFi Comm
+author MicroBlocks
+version 1 10 
+tags communication network 
+description 'Connect to a WiFi network. Used in conjunction with other network libraries, such as HTTP client, HTTP server or Web Thing.
+
+
+
+'
+
+  spec ' ' 'wifiConnect' 'wifi connect to _ password _ : IP _ gateway _ subnet _' 'str str auto auto auto' 'Network_Name' '' '192.168.1.42' '192.168.1.1' '255.255.255.0'
+  spec ' ' 'wifiCreateHotspot' 'wifi create hotspot _ password _' 'str str' 'Network_Name' 'Network_Password'
+  spec ' ' '[net:stopWiFi]' 'stop wifi'
+  space
+  spec ' ' '[net:setDomainName]' 'wifi set local domain name _ .local' 'str' 'microblocks'
+  space
+  spec 'r' 'getIPAddress' 'IP address'
+  spec 'r' '[net:myMAC]' 'MAC address'
+  space
+  spec ' ' '[net:allowWiFiAndBLE]' 'allow WiFi while using BLE _' 'bool' true
+
+to getIPAddress {
+  return ('[net:myIPAddress]')
+}
+
+to wifiConnect ssid password fixedIP gatewayIP subnetIP {
+  if (not ('[net:hasWiFi]')) {return}
+  '[net:stopWiFi]'
+  if ((pushArgCount) < 5) {
+    '[net:startWiFi]' ssid password
+  } else {
+    '[net:startWiFi]' ssid password false fixedIP gatewayIP subnetIP
+  }
+  local 'startMSecs' (millisOp)
+  repeatUntil (('[net:myIPAddress]') != '0.0.0.0') {
+    comment 'Timeout after N seconds'
+    if (((millisOp) - startMSecs) > 30000) {
+      sayIt 'Could not connect'
+      return 0
+    }
+    comment 'Slow blink while trying to connect'
+    setUserLED true
+    waitMillis 300
+    setUserLED false
+    waitMillis 300
+  }
+  repeat 6 {
+    comment 'Quick blinks when connected'
+    setUserLED true
+    waitMillis 50
+    setUserLED false
+    waitMillis 50
+  }
+  '[net:setDomainName]' 'microblocks'
+  sayIt 'My IP address is:' ('[net:myIPAddress]')
+}
+
+to wifiCreateHotspot ssid password {
+  if (not ('[net:hasWiFi]')) {return}
+  if ((size password) < 8) {
+    sayIt 'Password must be at least 8 characters'
+    return 0
+  }
+  '[net:startWiFi]' ssid password true
+  if ('Connected' != ('[net:wifiStatus]')) {
+    sayIt 'Could not create hotspot'
+    return 0
+  }
+  repeat 6 {
+    comment 'Quick blinks when connected'
+    setUserLED true
+    waitMillis 50
+    setUserLED false
+    waitMillis 50
+  }
+  '[net:setDomainName]' 'microblocks'
+  sayIt 'My IP address is:' ('[net:myIPAddress]')
 }
 

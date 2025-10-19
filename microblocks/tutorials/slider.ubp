@@ -2,65 +2,37 @@ module main
 author unknown
 version 1 0 
 description ''
-variables hor ver 
 
-script 50 50 {
+script 84 50 {
 whenStarted
+comment 'initialize LVGL and erase all objects'
 'enable lvgl' true true
-delete_all_objects
-'[tft:LVGLaddbtn]' 'Up' 1
-'[tft:LVGLsetcolor]' 'Up' (colorSwatch 30 13 190 255)
-'[tft:LVGLsetpos]' 'Up' 190 50
-'[tft:LVGLaddbtn]' 'Down' 1
-'[tft:LVGLsetcolor]' 'Down' (colorSwatch 35 190 30 255)
-'[tft:LVGLsetpos]' 'Down' 190 150
-'[tft:LVGLaddbtn]' 'Left' 1
-'[tft:LVGLsetcolor]' 'Left' (colorSwatch 230 250 8 255) (colorSwatch 4 4 4 255)
-'[tft:LVGLsetpos]' 'Left' 160 100
-'[tft:LVGLaddbtn]' 'Right' 1
-'[tft:LVGLsetcolor]' 'Right' (colorSwatch 190 58 12 255)
-'[tft:LVGLsetpos]' 'Right' 220 100
-'[tft:LVGLaddobj]' 'bar' 'hor_bar'
-'[tft:LVGLsetsize]' 'hor_bar' 150 20
-'[tft:LVGLsetpos]' 'hor_bar' 160 210
-'[tft:LVGLsetval]' 'hor_bar' 30
-'[tft:LVGLaddobj]' 'bar' 'ver_bar'
-'[tft:LVGLsetsize]' 'ver_bar' 20 150
-'[tft:LVGLsetpos]' 'ver_bar' 290 10
-'[tft:LVGLsetval]' 'ver_bar' 30
-'[tft:LVGLaddobj]' 'arc' 'arc'
-'[tft:LVGLsetcolor]' 'arc' (colorSwatch 252 208 202 255) (colorSwatch 255 66 11 255) (colorSwatch 249 27 12 255)
-'[tft:LVGLsetpos]' 'arc' 20 50
-'[tft:LVGLsetval]' 'arc' 10
-'[tft:LVGLaddlabel]' 'Volume' 2
-'[tft:LVGLsetpos]' 'Volume' 40 10
-'[tft:LVGLaddlabel]' 'Val' 3
-'[tft:LVGLsetcolor]' 'Val' (colorSwatch 248 52 13 255)
-'[tft:LVGLsetpos]' 'Val' 60 90
-'[tft:LVGLsettext]' 'Val' ('[data:convertType]' ('[tft:LVGLgetval]' 'arc') 'string') 3
-hor = 50
-ver = 50
-'[tft:LVGLsetval]' 'hor_bar' hor
-'[tft:LVGLsetval]' 'ver_bar' ver
+'[tft:LVGLaddobj]' 'slider' 'slider1'
+'[tft:LVGLsetpos]' 'slider1' 30 30
+'[tft:LVGLsetcolor]' 'slider1' (colorSwatch 252 16 90 255) (colorSwatch 239 14 74 255) (colorSwatch 190 11 99 255)
+comment 'make slider thicker'
+'[tft:LVGLsetsize]' 'slider1' 170 30
+'[tft:LVGLaddobj]' 'slider' 'slider2'
+comment 'extend range to 200 maximum'
+'[tft:LVGLsetattribute]' 'range' 'slider1' 0 200
+comment 'vertical slider by setting height larger than width'
+'[tft:LVGLsetsize]' 'slider2' 30 150
+'[tft:LVGLsetpos]' 'slider2' 220 60
+comment 'background color is already opaque for sliders'
+'[tft:LVGLsetcolor]' 'slider2' (colorSwatch 35 190 30 255) (colorSwatch 35 190 30 255) (colorSwatch 42 149 7 255)
+'[tft:LVGLaddlabel]' 'horizontal' 3 '50'
+'[tft:LVGLsetpos]' 'horizontal' 90 70
+'[tft:LVGLaddlabel]' 'vertical' 3 '30'
+'[tft:LVGLsetpos]' 'vertical' 155 180
 }
 
-script 696 204 {
+script 570 80 {
 whenCondition ('[tft:LVGLevent]')
-local 'obj' ('[tft:LVGLgetevent]')
-if (obj == 'Up') {
-  ver += 10
-  '[tft:LVGLsetval]' 'ver_bar' ver
-} (obj == 'Down') {
-  ver += -10
-  '[tft:LVGLsetval]' 'ver_bar' ver
-} (obj == 'Left') {
-  hor += -10
-  '[tft:LVGLsetval]' 'hor_bar' hor
-} (obj == 'Right') {
-  hor += 10
-  '[tft:LVGLsetval]' 'hor_bar' hor
-} (obj == 'arc') {
-  '[tft:LVGLsettext]' 'Val' ('[data:convertType]' ('[tft:LVGLgetval]' 'arc') 'string') 3
+comment 'update labels with value'
+if (('[tft:LVGLgetevent]') == 'slider1') {
+  '[tft:LVGLsettext]' 'horizontal' ('[tft:LVGLgetval]' ('[tft:LVGLgetevent]')) 3
+} (('[tft:LVGLgetevent]') == 'slider2') {
+  '[tft:LVGLsettext]' 'vertical' ('[tft:LVGLgetval]' ('[tft:LVGLgetevent]')) 3
 }
 }
 
@@ -203,7 +175,7 @@ to set_scale_mode mode {
     return 4
   } (mode == 'round inner') {
     return 8
-  } (mode == 'rounde outer') {
+  } (mode == 'round outer') {
     return 16
   } else {
     return 0
@@ -216,5 +188,101 @@ to set_states pressed checked scrolled {
 
 to symbol symbolname {
   return ('[data:unicodeString]' (callCustomReporter '[tft:LVGLgetsymbol]' ('[data:makeList]' symbolname)))
+}
+
+
+module LVGLSnapshot Output
+author Ste7an
+version 1 0 
+description 'Make snapshot of lvgl screen
+'
+
+  spec ' ' 'make snapshot' 'make snapshot _' 'auto' 'http://192.168.1.109:8000/'
+  spec ' ' 'connect wifi' 'connect wifi'
+
+to 'connect wifi' {
+  '[file:open]' 'wifi.txt'
+  wifiConnect ('[file:readLine]' 'wifi.txt') ('[file:readLine]' 'wifi.txt')
+}
+
+to 'make snapshot' url {
+  callCustomCommand '[tft:LVGLsnapshot]' ('[data:makeList]' url)
+}
+
+
+module WiFi Comm
+author MicroBlocks
+version 1 10 
+tags communication network 
+description 'Connect to a WiFi network. Used in conjunction with other network libraries, such as HTTP client, HTTP server or Web Thing.
+'
+
+  spec ' ' 'wifiConnect' 'wifi connect to _ password _ : IP _ gateway _ subnet _' 'str str auto auto auto' 'Network_Name' '' '192.168.1.42' '192.168.1.1' '255.255.255.0'
+  spec ' ' 'wifiCreateHotspot' 'wifi create hotspot _ password _' 'str str' 'Network_Name' 'Network_Password'
+  spec ' ' '[net:stopWiFi]' 'stop wifi'
+  space
+  spec ' ' '[net:setDomainName]' 'wifi set local domain name _ .local' 'str' 'microblocks'
+  space
+  spec 'r' 'getIPAddress' 'IP address'
+  spec 'r' '[net:myMAC]' 'MAC address'
+  space
+  spec ' ' '[net:allowWiFiAndBLE]' 'allow WiFi while using BLE _' 'bool' true
+
+to getIPAddress {
+  return ('[net:myIPAddress]')
+}
+
+to wifiConnect ssid password fixedIP gatewayIP subnetIP {
+  if (not ('[net:hasWiFi]')) {return}
+  '[net:stopWiFi]'
+  if ((pushArgCount) < 5) {
+    '[net:startWiFi]' ssid password
+  } else {
+    '[net:startWiFi]' ssid password false fixedIP gatewayIP subnetIP
+  }
+  local 'startMSecs' (millisOp)
+  repeatUntil (('[net:myIPAddress]') != '0.0.0.0') {
+    comment 'Timeout after N seconds'
+    if (((millisOp) - startMSecs) > 30000) {
+      sayIt 'Could not connect'
+      return 0
+    }
+    comment 'Slow blink while trying to connect'
+    setUserLED true
+    waitMillis 300
+    setUserLED false
+    waitMillis 300
+  }
+  repeat 6 {
+    comment 'Quick blinks when connected'
+    setUserLED true
+    waitMillis 50
+    setUserLED false
+    waitMillis 50
+  }
+  '[net:setDomainName]' 'microblocks'
+  sayIt 'My IP address is:' ('[net:myIPAddress]')
+}
+
+to wifiCreateHotspot ssid password {
+  if (not ('[net:hasWiFi]')) {return}
+  if ((size password) < 8) {
+    sayIt 'Password must be at least 8 characters'
+    return 0
+  }
+  '[net:startWiFi]' ssid password true
+  if ('Connected' != ('[net:wifiStatus]')) {
+    sayIt 'Could not create hotspot'
+    return 0
+  }
+  repeat 6 {
+    comment 'Quick blinks when connected'
+    setUserLED true
+    waitMillis 50
+    setUserLED false
+    waitMillis 50
+  }
+  '[net:setDomainName]' 'microblocks'
+  sayIt 'My IP address is:' ('[net:myIPAddress]')
 }
 

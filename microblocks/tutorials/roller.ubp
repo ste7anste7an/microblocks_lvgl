@@ -2,66 +2,32 @@ module main
 author unknown
 version 1 0 
 description ''
-variables hor ver 
 
-script 50 50 {
+script 106 122 {
 whenStarted
+comment 'initialize LVGL and erase all objects'
 'enable lvgl' true true
-delete_all_objects
-'[tft:LVGLaddbtn]' 'Up' 1
-'[tft:LVGLsetcolor]' 'Up' (colorSwatch 30 13 190 255)
-'[tft:LVGLsetpos]' 'Up' 190 50
-'[tft:LVGLaddbtn]' 'Down' 1
-'[tft:LVGLsetcolor]' 'Down' (colorSwatch 35 190 30 255)
-'[tft:LVGLsetpos]' 'Down' 190 150
-'[tft:LVGLaddbtn]' 'Left' 1
-'[tft:LVGLsetcolor]' 'Left' (colorSwatch 230 250 8 255) (colorSwatch 4 4 4 255)
-'[tft:LVGLsetpos]' 'Left' 160 100
-'[tft:LVGLaddbtn]' 'Right' 1
-'[tft:LVGLsetcolor]' 'Right' (colorSwatch 190 58 12 255)
-'[tft:LVGLsetpos]' 'Right' 220 100
-'[tft:LVGLaddobj]' 'bar' 'hor_bar'
-'[tft:LVGLsetsize]' 'hor_bar' 150 20
-'[tft:LVGLsetpos]' 'hor_bar' 160 210
-'[tft:LVGLsetval]' 'hor_bar' 30
-'[tft:LVGLaddobj]' 'bar' 'ver_bar'
-'[tft:LVGLsetsize]' 'ver_bar' 20 150
-'[tft:LVGLsetpos]' 'ver_bar' 290 10
-'[tft:LVGLsetval]' 'ver_bar' 30
-'[tft:LVGLaddobj]' 'arc' 'arc'
-'[tft:LVGLsetcolor]' 'arc' (colorSwatch 252 208 202 255) (colorSwatch 255 66 11 255) (colorSwatch 249 27 12 255)
-'[tft:LVGLsetpos]' 'arc' 20 50
-'[tft:LVGLsetval]' 'arc' 10
-'[tft:LVGLaddlabel]' 'Volume' 2
-'[tft:LVGLsetpos]' 'Volume' 40 10
-'[tft:LVGLaddlabel]' 'Val' 3
-'[tft:LVGLsetcolor]' 'Val' (colorSwatch 248 52 13 255)
-'[tft:LVGLsetpos]' 'Val' 60 90
-'[tft:LVGLsettext]' 'Val' ('[data:convertType]' ('[tft:LVGLgetval]' 'arc') 'string') 3
-hor = 50
-ver = 50
-'[tft:LVGLsetval]' 'hor_bar' hor
-'[tft:LVGLsetval]' 'ver_bar' ver
+comment 'create 4 leds with different colors'
+'[tft:LVGLaddobj]' 'roller' 'roller'
+'[tft:LVGLsetpos]' 'roller' 80 20
+comment 'all items seperated with new line'
+'[tft:LVGLsettext]' 'roller' 'bear
+snake
+Crotalus atrox
+salmon
+parrot
+dog
+cat
+fish
+frog'
+'[tft:LVGLaddlabel]' 'selection' 3
+'[tft:LVGLsetpos]' 'selection' 60 180
 }
 
-script 696 204 {
+script 565 172 {
 whenCondition ('[tft:LVGLevent]')
-local 'obj' ('[tft:LVGLgetevent]')
-if (obj == 'Up') {
-  ver += 10
-  '[tft:LVGLsetval]' 'ver_bar' ver
-} (obj == 'Down') {
-  ver += -10
-  '[tft:LVGLsetval]' 'ver_bar' ver
-} (obj == 'Left') {
-  hor += -10
-  '[tft:LVGLsetval]' 'hor_bar' hor
-} (obj == 'Right') {
-  hor += 10
-  '[tft:LVGLsetval]' 'hor_bar' hor
-} (obj == 'arc') {
-  '[tft:LVGLsettext]' 'Val' ('[data:convertType]' ('[tft:LVGLgetval]' 'arc') 'string') 3
-}
+comment 'roller returns value of selected item as string'
+'[tft:LVGLsettext]' 'selection' ('[tft:LVGLgetval]' 'roller') 3
 }
 
 
@@ -203,7 +169,7 @@ to set_scale_mode mode {
     return 4
   } (mode == 'round inner') {
     return 8
-  } (mode == 'rounde outer') {
+  } (mode == 'round outer') {
     return 16
   } else {
     return 0
@@ -216,5 +182,24 @@ to set_states pressed checked scrolled {
 
 to symbol symbolname {
   return ('[data:unicodeString]' (callCustomReporter '[tft:LVGLgetsymbol]' ('[data:makeList]' symbolname)))
+}
+
+
+module LVGLSnapshot Output
+author Ste7an
+version 1 0 
+description 'Make snapshot of lvgl screen
+'
+
+  spec ' ' 'make snapshot' 'make snapshot _' 'auto' 'http://192.168.1.109:8000/'
+  spec ' ' 'connect wifi' 'connect wifi'
+
+to 'connect wifi' {
+  '[file:open]' 'wifi.txt'
+  wifiConnect ('[file:readLine]' 'wifi.txt') ('[file:readLine]' 'wifi.txt')
+}
+
+to 'make snapshot' url {
+  callCustomCommand '[tft:LVGLsnapshot]' ('[data:makeList]' url)
 }
 
