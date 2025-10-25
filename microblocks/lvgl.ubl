@@ -21,7 +21,7 @@ variables _lvgl_call_backs
   spec ' ' '[tft:LVGLsetval]' 'set value _ value _' 'str num' '' 10
   spec 'r' '[tft:LVGLgetval]' 'get value _' 'str' ''
   spec ' ' '[tft:LVGLsettext]' 'set text _ text _ : scale _' 'str str auto' '' 'text' 1
-  spec ' ' '[tft:LVGLsetcolor]' 'set color _ background _ : indicator _ : knob _' 'str color color color' ''
+  spec ' ' '[tft:LVGLsetcolor]' 'set color _ background _ : second _ : third _' 'str color color color' ''
   spec 'r' 'lvgl_color' '_' 'color'
   spec 'r' 'makeColor' 'color r _ g _ b _ (0-255)' 'num num num' 0 100 100
   space

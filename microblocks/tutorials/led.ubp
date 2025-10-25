@@ -3,7 +3,7 @@ author unknown
 version 1 0 
 description ''
 
-script 517 82 {
+script 517 66 {
 whenStarted
 comment 'animation of pulse led'
 forever {
@@ -15,7 +15,7 @@ forever {
 }
 }
 
-script 106 161 {
+script 118 68 {
 whenStarted
 comment 'initialize LVGL and erase all objects'
 'enable lvgl' true true
@@ -42,7 +42,7 @@ comment 'turn leds off'
 '[tft:LVGLsetval]' 'red' (booleanConstant false)
 }
 
-script 516 440 {
+script 516 424 {
 whenStarted
 comment 'animation traffic light'
 forever {
@@ -91,7 +91,7 @@ variables _lvgl_call_backs
   spec ' ' '[tft:LVGLsetval]' 'set value _ value _' 'str num' '' 10
   spec 'r' '[tft:LVGLgetval]' 'get value _' 'str' ''
   spec ' ' '[tft:LVGLsettext]' 'set text _ text _ : scale _' 'str str auto' '' 'text' 1
-  spec ' ' '[tft:LVGLsetcolor]' 'set color _ background _ : indicator _ : knob _' 'str color color color' ''
+  spec ' ' '[tft:LVGLsetcolor]' 'set color _ background _ : second _ : third _' 'str color color color' ''
   spec 'r' 'lvgl_color' '_' 'color'
   spec 'r' 'makeColor' 'color r _ g _ b _ (0-255)' 'num num num' 0 100 100
   space
@@ -219,24 +219,5 @@ to set_states pressed checked scrolled {
 
 to symbol symbolname {
   return ('[data:unicodeString]' (callCustomReporter '[tft:LVGLgetsymbol]' ('[data:makeList]' symbolname)))
-}
-
-
-module LVGLSnapshot Output
-author Ste7an
-version 1 0 
-description 'Make snapshot of lvgl screen
-'
-
-  spec ' ' 'make snapshot' 'make snapshot _' 'auto' 'http://192.168.1.109:8000/'
-  spec ' ' 'connect wifi' 'connect wifi'
-
-to 'connect wifi' {
-  '[file:open]' 'wifi.txt'
-  wifiConnect ('[file:readLine]' 'wifi.txt') ('[file:readLine]' 'wifi.txt')
-}
-
-to 'make snapshot' url {
-  callCustomCommand '[tft:LVGLsnapshot]' ('[data:makeList]' url)
 }
 

@@ -3,37 +3,27 @@ author unknown
 version 1 0 
 description ''
 
-script 137 66 {
+script 68 54 {
 whenStarted
 'enable lvgl' true true
-'[tft:LVGLsetcolor]' (screen) (colorSwatch 0 0 0 255)
-comment 'define label for messages'
-'[tft:LVGLaddlabel]' 'label' 3 ''
-'[tft:LVGLsetcolor]' 'label' (colorSwatch 237 15 62 255)
-'[tft:LVGLsetpos]' 'label' 70 20
-comment 'define buttons and use symbols as text'
-'[tft:LVGLaddbtn]' 'prev' 2 (symbol 'prev')
-'[tft:LVGLsetpos]' 'prev' 10 80
-'[tft:LVGLaddbtn]' 'play' 2 (symbol 'play')
-'[tft:LVGLsetpos]' 'play' 60 80
-'[tft:LVGLaddbtn]' 'pause' 2 (symbol 'pause')
-'[tft:LVGLsetpos]' 'pause' 110 80
-'[tft:LVGLaddbtn]' 'stop' 2 (symbol 'stop')
-'[tft:LVGLsetpos]' 'stop' 160 80
-'[tft:LVGLaddbtn]' 'next' 2 (symbol 'next')
-'[tft:LVGLsetpos]' 'next' 210 80
-'[tft:LVGLaddbtn]' 'mute' 3 (symbol 'mute')
-'[tft:LVGLsetpos]' 'mute' 30 160
-'[tft:LVGLaddbtn]' 'mid' 3 (symbol 'volume_mid')
-'[tft:LVGLsetpos]' 'mid' 90 160
-'[tft:LVGLaddbtn]' 'max' 3 (symbol 'volume_max')
-'[tft:LVGLsetpos]' 'max' 160 160
-}
-
-script 140 836 {
-whenCondition ('[tft:LVGLevent]')
-comment 'when a button is pressed, show the button  as text'
-'[tft:LVGLsettext]' 'label' ('[tft:LVGLgetevent]') 3
+delete_all_objects
+comment 'tabview'
+'[tft:LVGLaddobj]' 'tabview' 'tabview'
+'[tft:LVGLaddtab]' 'Arcs' 'tabview'
+'[tft:LVGLaddtab]' 'Sliders' 'tabview'
+comment 'add widgets to tab Arcs'
+'[tft:LVGLaddobj]' 'arc' 'arc1' 'Arcs'
+'[tft:LVGLaddobj]' 'arc' 'arc2' 'Arcs'
+'[tft:LVGLsetpos]' 'arc2' 160 0
+'[tft:LVGLsetcolor]' 'arc2' (colorSwatch 157 190 155 255) (colorSwatch 190 17 38 255) (colorSwatch 35 190 30 255)
+comment 'add widgets to tab Sliders'
+'[tft:LVGLaddobj]' 'slider' 'slider1' 'Sliders'
+'[tft:LVGLsetpos]' 'slider1' 20 20
+'[tft:LVGLsetcolor]' 'slider1' (colorSwatch 35 190 30 255) (colorSwatch 35 190 30 255) (colorSwatch 35 190 30 255)
+'[tft:LVGLaddobj]' 'slider' 'slider2' 'Sliders'
+'[tft:LVGLsetpos]' 'slider2' 20 70
+'[tft:LVGLsetcolor]' 'slider2' (colorSwatch 190 63 26 255) (colorSwatch 190 47 62 255) (colorSwatch 190 49 22 255)
+'[tft:LVGLsetsize]' 'slider2' 280 30
 }
 
 

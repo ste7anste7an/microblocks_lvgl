@@ -2,38 +2,79 @@ module main
 author unknown
 version 1 0 
 description ''
+variables button1 button2 
 
-script 137 66 {
-whenStarted
-'enable lvgl' true true
-'[tft:LVGLsetcolor]' (screen) (colorSwatch 0 0 0 255)
-comment 'define label for messages'
-'[tft:LVGLaddlabel]' 'label' 3 ''
-'[tft:LVGLsetcolor]' 'label' (colorSwatch 237 15 62 255)
-'[tft:LVGLsetpos]' 'label' 70 20
-comment 'define buttons and use symbols as text'
-'[tft:LVGLaddbtn]' 'prev' 2 (symbol 'prev')
-'[tft:LVGLsetpos]' 'prev' 10 80
-'[tft:LVGLaddbtn]' 'play' 2 (symbol 'play')
-'[tft:LVGLsetpos]' 'play' 60 80
-'[tft:LVGLaddbtn]' 'pause' 2 (symbol 'pause')
-'[tft:LVGLsetpos]' 'pause' 110 80
-'[tft:LVGLaddbtn]' 'stop' 2 (symbol 'stop')
-'[tft:LVGLsetpos]' 'stop' 160 80
-'[tft:LVGLaddbtn]' 'next' 2 (symbol 'next')
-'[tft:LVGLsetpos]' 'next' 210 80
-'[tft:LVGLaddbtn]' 'mute' 3 (symbol 'mute')
-'[tft:LVGLsetpos]' 'mute' 30 160
-'[tft:LVGLaddbtn]' 'mid' 3 (symbol 'volume_mid')
-'[tft:LVGLsetpos]' 'mid' 90 160
-'[tft:LVGLaddbtn]' 'max' 3 (symbol 'volume_max')
-'[tft:LVGLsetpos]' 'max' 160 160
+  spec ' ' 'arc' 'arc'
+  spec ' ' 'button1' 'button1'
+  spec ' ' 'button2' 'button2'
+
+to arc {
+  comment 'callback for arc'
+  '[tft:LVGLsettext]' 'label' ('[data:convertType]' ('[tft:LVGLgetval]' ('[tft:LVGLgetevent]')) 'string') 2
 }
 
-script 140 836 {
-whenCondition ('[tft:LVGLevent]')
-comment 'when a button is pressed, show the button  as text'
-'[tft:LVGLsettext]' 'label' ('[tft:LVGLgetevent]') 3
+to button1 {
+  comment 'callback for button1'
+  button1 = (not button1)
+  if button1 {
+    '[tft:LVGLsetcolor]' 'button1' (colorSwatch 35 190 30 255)
+  } else {
+    '[tft:LVGLsetcolor]' 'button1' (colorSwatch 190 8 40 255)
+  }
+}
+
+to button2 {
+  comment 'callback for button2'
+  button2 = (not button2)
+  if button2 {
+    '[tft:LVGLsetcolor]' 'button2' (colorSwatch 35 190 30 255)
+  } else {
+    '[tft:LVGLsetcolor]' 'button2' (colorSwatch 190 8 40 255)
+  }
+}
+
+script 77 66 {
+whenStarted
+'enable lvgl' true true
+comment 'add widgets'
+'[tft:LVGLaddbtn]' 'button1' 2
+'[tft:LVGLsetpos]' 'button1' 30 20
+'[tft:LVGLsetcolor]' 'button1' (colorSwatch 35 190 30 255)
+'[tft:LVGLaddbtn]' 'button2' 2
+'[tft:LVGLsetpos]' 'button2' 175 20
+'[tft:LVGLsetcolor]' 'button2' (colorSwatch 35 190 30 255)
+'[tft:LVGLaddobj]' 'arc' 'arc'
+'[tft:LVGLsetpos]' 'arc' 100 100
+'[tft:LVGLaddlabel]' 'label' 2
+'[tft:LVGLsetpos]' 'label' 140 150
+button1 = (booleanConstant true)
+button2 = (booleanConstant true)
+}
+
+script 396 80 {
+whenStarted
+comment 'Init callback'
+init_callback
+comment 'add callback for each widget'
+add_callback 'button1'
+add_callback 'button2'
+add_callback 'arc'
+forever {
+  comment 'continuously handle events'
+  handle_event
+}
+}
+
+script 692 83 {
+to button1 {}
+}
+
+script 698 370 {
+to button2 {}
+}
+
+script 705 660 {
+to arc {}
 }
 
 

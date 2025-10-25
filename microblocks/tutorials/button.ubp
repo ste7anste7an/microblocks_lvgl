@@ -3,19 +3,24 @@ author unknown
 version 1 0 
 description ''
 
-script 171 82 {
+script 171 33 {
 whenStarted
+comment 'enable lvgl and delete all objects'
 'enable lvgl' true true
+comment 'create button with name and text OK'
 '[tft:LVGLaddbtn]' 'OK' 3
 '[tft:LVGLsetpos]' 'OK' 90 50
 '[tft:LVGLsetcolor]' 'OK' (colorSwatch 35 190 30 255)
+comment 'create button with name and text Exit'
 '[tft:LVGLaddbtn]' 'Exit' 3
 '[tft:LVGLsetpos]' 'Exit' 90 130
 '[tft:LVGLsetcolor]' 'Exit' (colorSwatch 255 6 44 255)
 }
 
-script 182 393 {
+script 176 381 {
 whenCondition ('[tft:LVGLevent]')
+comment 'wait until an event is generated and show the name
+of the widget that generated the event'
 sayIt 'Button' ('[tft:LVGLgetevent]') 'pressed'
 }
 
@@ -171,24 +176,5 @@ to set_states pressed checked scrolled {
 
 to symbol symbolname {
   return ('[data:unicodeString]' (callCustomReporter '[tft:LVGLgetsymbol]' ('[data:makeList]' symbolname)))
-}
-
-
-module LVGLSnapshot Output
-author Ste7an
-version 1 0 
-description 'Make snapshot of lvgl screen
-'
-
-  spec ' ' 'make snapshot' 'make snapshot _' 'auto' 'http://192.168.1.109:8000/'
-  spec ' ' 'connect wifi' 'connect wifi'
-
-to 'connect wifi' {
-  '[file:open]' 'wifi.txt'
-  wifiConnect ('[file:readLine]' 'wifi.txt') ('[file:readLine]' 'wifi.txt')
-}
-
-to 'make snapshot' url {
-  callCustomCommand '[tft:LVGLsnapshot]' ('[data:makeList]' url)
 }
 

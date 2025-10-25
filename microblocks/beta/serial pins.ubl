@@ -1,0 +1,11 @@
+module 'serial pins'
+author unknown
+version 1 0 
+description ''
+
+  spec ' ' 'serial pins' 'serial pins rx _ tx _' 'auto auto' '10' '10'
+
+to 'serial pins' rx tx {
+  callCustomCommand '[serial:setPins]' ('[data:makeList]' rx tx)
+}
+

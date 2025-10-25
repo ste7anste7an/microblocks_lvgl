@@ -3,9 +3,10 @@ author unknown
 version 1 0 
 description ''
 
-script 84 50 {
+script 84 66 {
 whenStarted
 comment 'initialize LVGL and erase all objects'
+'enable lvgl' true true
 '[tft:LVGLaddobj]' 'bar' 'bar1'
 '[tft:LVGLsetsize]' 'bar1' 30 180
 '[tft:LVGLsetpos]' 'bar1' 220 30
@@ -33,20 +34,20 @@ comment 'add round scale'
 '[tft:LVGLsetpos]' 'scale3' 30 90
 }
 
-script 524 74 {
+script 488 69 {
 whenStarted
 comment 'animate bar values'
 forever {
   for i 10 {
     '[tft:LVGLsetval]' 'bar1' (10 * i)
     '[tft:LVGLsetval]' 'bar2' (10 * i)
-    '[tft:LVGLsetval]' 'bar3' (10 * i)
+    '[tft:LVGLsetval]' 'arc' (10 * i)
     waitMillis 200
   }
   for i 10 {
     '[tft:LVGLsetval]' 'bar1' (100 - (10 * i))
     '[tft:LVGLsetval]' 'bar2' (100 - (10 * i))
-    '[tft:LVGLsetval]' 'bar3' (100 - (10 * i))
+    '[tft:LVGLsetval]' 'arc' (100 - (10 * i))
     waitMillis 200
   }
 }
@@ -76,7 +77,7 @@ variables _lvgl_call_backs
   spec ' ' '[tft:LVGLsetval]' 'set value _ value _' 'str num' '' 10
   spec 'r' '[tft:LVGLgetval]' 'get value _' 'str' ''
   spec ' ' '[tft:LVGLsettext]' 'set text _ text _ : scale _' 'str str auto' '' 'text' 1
-  spec ' ' '[tft:LVGLsetcolor]' 'set color _ background _ : indicator _ : knob _' 'str color color color' ''
+  spec ' ' '[tft:LVGLsetcolor]' 'set color _ background _ : second _ : third _' 'str color color color' ''
   spec 'r' 'lvgl_color' '_' 'color'
   spec 'r' 'makeColor' 'color r _ g _ b _ (0-255)' 'num num num' 0 100 100
   space
@@ -204,24 +205,5 @@ to set_states pressed checked scrolled {
 
 to symbol symbolname {
   return ('[data:unicodeString]' (callCustomReporter '[tft:LVGLgetsymbol]' ('[data:makeList]' symbolname)))
-}
-
-
-module LVGLSnapshot Output
-author Ste7an
-version 1 0 
-description 'Make snapshot of lvgl screen
-'
-
-  spec ' ' 'make snapshot' 'make snapshot _' 'auto' 'http://192.168.1.109:8000/'
-  spec ' ' 'connect wifi' 'connect wifi'
-
-to 'connect wifi' {
-  '[file:open]' 'wifi.txt'
-  wifiConnect ('[file:readLine]' 'wifi.txt') ('[file:readLine]' 'wifi.txt')
-}
-
-to 'make snapshot' url {
-  callCustomCommand '[tft:LVGLsnapshot]' ('[data:makeList]' url)
 }
 

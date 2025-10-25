@@ -1,6 +1,7 @@
 module LVGLSnapshot Output
 author Ste7an
-version 1 0 
+version 1 0
+depends WiFi 
 description 'Make snapshot of lvgl screen
 '
 
