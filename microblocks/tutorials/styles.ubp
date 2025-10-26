@@ -3,21 +3,24 @@ author unknown
 version 1 0 
 description ''
 
-script 122 183 {
+script 617 50 {
+'[tft:LVGLaddobj]' 'style' 'style'
+'[tft:LVGLsetstyle]' 'text font' 'style' 2
+'[tft:LVGLsetstyle]' 'bg color' 'style' (lvgl_color (colorSwatch 190 64 45 255))
+}
+
+script 593 161 {
+'[tft:LVGLsetstyle]' 'border width' 'style' 4
+'[tft:LVGLsetstyle]' 'text color' 'style' (lvgl_color (colorSwatch 190 64 45 255))
+}
+
+script 110 176 {
 'enable lvgl' true true
 '[tft:LVGLaddlabel]' 'label' 1 'This is a label'
 '[tft:LVGLsetpos]' 'label' 100 100
 }
 
-script 645 195 {
-'[tft:LVGLaddobj]' 'roller' 'roller'
-}
-
-script 619 316 {
-'[tft:LVGLsetparent]' 'style' 'roller' 0 0
-}
-
-script 586 409 {
+script 946 248 {
 '[tft:LVGLaddobj]' 'style' 'rol'
 '[tft:LVGLsetstyle]' 'text font' 'rol' 2
 '[tft:LVGLsetstyle]' 'border width' 'rol' 0
@@ -26,18 +29,31 @@ script 586 409 {
 '[tft:LVGLsetparent]' 'rol' 'roller' 0 (set_parts true)
 }
 
-script 85 431 {
-'[tft:LVGLaddobj]' 'style' 'style'
-'[tft:LVGLsetstyle]' 'text font' 'style' 2
-'[tft:LVGLsetstyle]' 'border width' 'style' 4
-'[tft:LVGLsetstyle]' 'text color' 'style' (lvgl_color (colorSwatch 35 190 30 255))
+script 123 373 {
+'[tft:LVGLaddobj]' 'tabview' 'tabview'
+'[tft:LVGLaddtab]' 'tab' 'tabview'
+'[tft:LVGLaddtab]' 'tab2' 'tabview'
 }
 
-script 151 580 {
+script 620 448 {
+'[tft:LVGLaddobj]' 'roller' 'roller'
+}
+
+script 622 510 {
 '[tft:LVGLsetparent]' 'style' 'label' 0 0
 }
 
-script 240 679 (set_parts false false false false false)
+script 129 520 {
+'[tft:LVGLsetparent]' 'style' 'tabview' 0 0
+}
+
+script 621 566 {
+'[tft:LVGLsetparent]' 'style' 'roller' 0 0
+}
+
+script 153 646 (set_parts false)
+
+script 310 687 (set_parts false false false false false)
 
 
 module LVGL Output
