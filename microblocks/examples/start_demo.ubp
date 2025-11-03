@@ -3,7 +3,7 @@ author unknown
 version 1 0 
 description ''
 
-script 127 50 {
+script 127 49 {
 whenStarted
 'enable lvgl' true true
 comment 'delete all existing '
@@ -21,12 +21,12 @@ comment 'slider'
 '[tft:LVGLaddobj]' 'slider' 'slider'
 '[tft:LVGLsetcolor]' 'slider' (colorSwatch 35 190 30 255) (colorSwatch 35 190 30 255) (colorSwatch 35 190 30 255)
 '[tft:LVGLsetsize]' 'slider' 20 200
-'[tft:LVGLsetpos]' 'slider' 260 20
+'[tft:LVGLsetpos]' 'slider' 240 20
 comment 'labels vor values'
 '[tft:LVGLaddlabel]' 'val' 3
 '[tft:LVGLsetpos]' 'val' 70 140
 '[tft:LVGLaddlabel]' 'val2' 2
-'[tft:LVGLsetpos]' 'val2' 220 140
+'[tft:LVGLsetpos]' 'val2' 200 140
 forever {
   comment 'increase value'
   for i 100 {
@@ -34,7 +34,7 @@ forever {
     '[tft:LVGLsettext]' 'val' i 3
     '[tft:LVGLsetval]' 'slider' i
     '[tft:LVGLsettext]' 'val2' i 2
-    '[tft:LVGLsetpos]' 'val2' 220 (200 - (i * 2))
+    '[tft:LVGLsetpos]' 'val2' 200 (200 - (i * 2))
     waitMillis 10
   }
   comment 'decrease value'
@@ -44,7 +44,7 @@ forever {
     '[tft:LVGLsettext]' 'val' j 3
     '[tft:LVGLsetval]' 'slider' j
     '[tft:LVGLsettext]' 'val2' j 2
-    '[tft:LVGLsetpos]' 'val2' 220 (200 - (j * 2))
+    '[tft:LVGLsetpos]' 'val2' 200 (200 - (j * 2))
     waitMillis 10
   }
 }
