@@ -1,10 +1,15 @@
 # LVGL for MicroBlocks
 
-This is a work-in-progress project where LVGL is added to the Microblocks VM.
+This is the MicroBlocks library that implements LVGL. An LVGL capable MicroBlocks firmware is needed in order to get it working.
 
-## Firmware
-in the directory `lvgl_vm/firmware` we store the single file firmware images. Easy to upload using [ESPTool online flashing util](https://espressif.github.io/esptool-js/). Connect, set `flash Address` to 0x0 and select firmware. Hit program (disconnect from MicroBlocks IDE first).
+## Firmware for CYD
+For the Cheap Yellow Display boards a generic firmware is devloped. This firmware uses a configuration file that it loads from the interbnal filesystem n the board to configure the TFT Display and Touch controller at runtime. For a number of versions of the CYD these config files are available in the [CYD-MicroBlocks-LVGL git repo](https://github.com/ste7anste7an/CYD-MicroBlocks-LVGL).
 
-## Microblocks code
-in the `lvgl_mb/microblocks` directory the latest version of the `lvgl.ubl` library and example and demo program code can be found.
+The firmware can be downloaded from [firmware.ste7an.nl](https://firmware.ste7an.nl). Keep in mind, that when the firmware is installed for the first time, nothing appears on the screen until the correct config.txt is uploaded to the boards filesystem. 
+
+## Microblocks library
+In the `library` directory the main LVGL library `lvgl.ubl` can be found.
+
+## Examples
+The `example` directory contains a number of examples showing the possibilities with the LVGL library.
 
