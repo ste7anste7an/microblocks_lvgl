@@ -1,12 +1,13 @@
 module LVGLSnapshot Output
 author Ste7an
-version 1 0
+version 1 0 
 depends WiFi 
 description 'Make snapshot of lvgl screen
 '
 
   spec ' ' 'make snapshot' 'make snapshot _' 'auto' 'http://192.168.1.109:8000/'
   spec ' ' 'connect wifi' 'connect wifi'
+  spec ' ' 'timersnapshot' 'timersnapshot _ wait _' 'auto auto' '10' '10'
 
 to 'connect wifi' {
   '[file:open]' 'wifi.txt'
@@ -15,5 +16,12 @@ to 'connect wifi' {
 
 to 'make snapshot' url {
   callCustomCommand '[tft:LVGLsnapshot]' ('[data:makeList]' url)
+}
+
+to timersnapshot url ms {
+  forever {
+    'make snapshot' url
+    waitMillis ms
+  }
 }
 
