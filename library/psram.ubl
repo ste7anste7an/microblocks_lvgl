@@ -1,0 +1,6 @@
+module psram
+author Ste7an
+version 1 0 
+description 'show psram and heap in console'
+
+spec 'r' '[tft:LVGLpsram]' 'psram'

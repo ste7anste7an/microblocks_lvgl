@@ -1,0 +1,32 @@
+module 'Soft I2C' Input
+author 'YourName'
+version 1 0
+description 'Software I2C (bitbang) for slow I2C devices in MicroBlocks'
+
+variables SDA SCL
+
+// === Specs (user-facing blocks) ===
+spec ' ' 'setpins _ _' 'Set SDA _ and SCL _' 'num num' 2 3
+spec ' ' 'init' 'Initialize I2C bus'
+
+
+// === Implementation ===
+to 'setpins' sda scl {
+    SDA = sda
+    SCL = scl
+}
+
+to 'init' {
+    digitalWrite SDA true
+    digitalWrite SCL true
+    pinMode SDA OUTPUT
+    pinMode SCL OUTPUT
+}
+
+to 'sdaHigh' {
+    digitalWrite SDA true
+}
+
+to 'sdaLow' {
+    digitalWrite SDA false
+}

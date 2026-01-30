@@ -1,0 +1,579 @@
+module main
+author unknown
+version 1 0 
+description ''
+
+  spec 'r' 'grideye' 'grideye'
+  spec ' ' 'plot_grid' 'plot_grid _' 'auto' '10'
+  spec 'r' 'two_comp' 'two_comp _' 'auto' '10'
+
+to grideye {
+  local 'buf' ('[data:newByteArray]' 128)
+  for i 127 {
+    atPut i buf (i2cGet 104 (127 + i))
+  }
+  local 'temp' (newList 64)
+  for i 64 {
+    atPut i temp ((10 * (two_comp (((at ((i * 2) + 0) buf) * 256) + (at ((i * 2) - 1) buf)))) / 4)
+  }
+  return temp
+}
+
+to plot_grid temp {
+  for i 7 {
+    for j 7 {
+      local 't' (at ((i * 8) + j) temp)
+      '[tft:rect]' (20 * i) (20 * j) 20 20 (makeGray (((t - 180) * 100) / 150))
+    }
+  }
+}
+
+to two_comp val {
+  if ((val & (hexToInt '800')) == (hexToInt '800')) {return (val - (hexToInt '1000'))}
+  return val
+}
+
+script 215 50 {
+'[sensors:i2cRead]' 104 buf
+}
+
+script 546 103 {
+to grideye {}
+}
+
+script 108 314 {
+to two_comp {}
+}
+
+script 80 637 {
+to plot_grid {}
+}
+
+script 630 756 {
+'[tft:clear]'
+forever {
+  plot_grid (grideye)
+}
+}
+
+script 470 927 (10 - 180)
+
+
+module 'HTTP client' Comm
+author MicroBlocks
+version 1 5 
+depends WiFi 
+tags http network get post put delete 
+choices requestTypes GET POST PUT DELETE 
+description 'Send HTTP requests and get responses back. You can use this library to fetch or store data in online servers, or to control other Wifi-enabled boards.
+'
+
+  spec 'r' '_http_body_start' '_http_body_start _' 'auto' ''
+  spec 'r' '_http_header_text' '_http_header_text _' 'auto' ''
+  spec 'r' '_http_status_text' '_http_status_text _' 'auto' ''
+  spec 'r' '_http_header' '_header _ of response _' 'auto auto' 'content-length' ''
+  spec 'r' '_http_status' '_status of response _' 'auto' ''
+  spec 'r' '_line_end' '_line_end'
+  spec 'r' '_lowercase' '_lowercase _' 'auto' 'ABC Def gH'
+  spec 'r' '_request_url' '_request_url _ method _ body _ : port _' 'str menu.requestTypes str num' '' 'GET' '' 80
+  spec 'r' '_readHTTPResponse' '_readHTTPResponse'
+  spec 'r' 'http܃//' 'http #SVG#colon-double-slash _ : port _' 'auto num' 'microblocks.fun/example.txt' 80
+  spec ' ' 'request' '_ data _ to http #SVG#colon-double-slash _ : port _' 'menu.requestTypes str str num' 'POST' 'MicroBlocks is fun' 'microblocks.fun' 80
+
+to '_http_body_start' response {
+  return (('[data:find]' ('[data:unicodeString]' ('[data:makeList]' 13 10 13 10)) response) + 4)
+}
+
+to '_http_header' header response {
+  local 'header text' ('_http_header_text' response)
+  header = ('_lowercase' header)
+  repeatUntil ((size (v 'header text')) < 3) {
+    local 'key' ('[data:copyFromTo]' (v 'header text') 1 (('[data:find]' ':' (v 'header text')) - 1))
+    if (('_lowercase' key) == header) {
+      return ('[data:copyFromTo]' (v 'header text') (('[data:find]' ':' (v 'header text')) + 2) (('[data:find]' ('_line_end') (v 'header text')) - 1))
+    }
+    'header text' = ('[data:copyFromTo]' (v 'header text') (('[data:find]' ('_line_end') (v 'header text')) + 2))
+  }
+  return (booleanConstant false)
+}
+
+to '_http_header_text' response {
+  local 'headersStart' (('[data:find]' ('_line_end') response) + 2)
+  return ('[data:copyFromTo]' response headersStart (('_http_body_start' response) + 2))
+}
+
+to '_http_status' response {
+  return (('[data:copyFromTo]' ('_http_status_text' response) 1 4) + 0)
+}
+
+to '_http_status_text' response {
+  return ('[data:copyFromTo]' response ('[data:find]' ' ' response) ('[data:find]' ('_line_end') response))
+}
+
+to '_line_end' {
+  return ('[data:unicodeString]' ('[data:makeList]' 13 10))
+}
+
+to '_lowercase' string {
+  local 'lowercased' ''
+  local 'char code' ''
+  for c (size string) {
+    'char code' = ('[data:unicodeAt]' c string)
+    if (and ((v 'char code') >= 65) ((v 'char code') <= 90)) {
+      'char code' = ((v 'char code') + 32)
+    }
+    lowercased = ('[data:join]' lowercased ('[data:unicodeString]' (v 'char code')))
+  }
+  return lowercased
+}
+
+to '_readHTTPResponse' {
+  local 'response' ''
+  local 'lastChunkTime' (millisOp)
+  repeatUntil (not ('[net:httpIsConnected]')) {
+    local 'chunk' ('[net:httpResponse]')
+    if ((size chunk) > 0) {
+      response = ('[data:join]' response chunk)
+      lastChunkTime = (millisOp)
+    } (((millisOp) - lastChunkTime) > 10000) {
+      return response
+    }
+    waitMillis 20
+  }
+  response = ('[data:join]' response ('[net:httpResponse]'))
+  return response
+}
+
+to '_request_url' url method body optionalPort {
+  local 'port' 80
+  if ((pushArgCount) > 3) {
+    port = optionalPort
+  }
+  local 'host' ''
+  local 'path' ''
+  local 'slashPosition' ('[data:find]' '/' url)
+  if (slashPosition > 0) {
+    host = ('[data:copyFromTo]' url 1 (slashPosition - 1))
+    path = ('[data:copyFromTo]' url (slashPosition + 1))
+  } else {
+    host = url
+  }
+  if (('[net:wifiStatus]') != 'Connected') {
+    return ('[data:join]' '0 Not Connected' ('_line_end'))
+  }
+  '[net:httpConnect]' host port
+  if (not ('[net:httpIsConnected]')) {
+    return ('[data:join]' '0 Could not connect to server' ('_line_end'))
+  }
+  '[net:httpRequest]' method host path body
+  return ('_readHTTPResponse')
+}
+
+to 'http܃//' url optionalPort {
+  local 'port' 80
+  if ((pushArgCount) > 1) {
+    port = optionalPort
+  }
+  local 'response' ('_request_url' url 'GET' '' port)
+  if (response != '') {
+    if (('_http_status' response) == 200) {
+      return ('[data:copyFromTo]' response ('_http_body_start' response))
+    } else {
+      return ('_http_status_text' response)
+    }
+  } else {
+    return 'Failed to get response'
+  }
+}
+
+to request method data url optionalPort {
+  local 'port' 80
+  if ((pushArgCount) > 3) {
+    port = optionalPort
+  }
+  local 'response' ('_request_url' url method data port)
+  if (response != '') {
+    local 'status' ('_http_status' response)
+    local 'body start' ('_http_body_start' response)
+    if (and (200 == status) ((v 'body start') > 0)) {
+      sayIt ('[data:copyFromTo]' response (v 'body start'))
+    } else {
+      sayIt ('_http_status_text' response)
+    }
+  } else {
+    sayIt 'Failed to get response'
+  }
+}
+
+
+module Lists Data
+author 'per MicroBlocks'
+version 1 9 
+choices pick 'a few' some most 
+description 'Useful functions for working with lists.
+'
+
+  spec 'r' 'list_contains' 'list _ contains _' 'auto auto' 'aList' 'cat'
+  spec 'r' 'list_equals' 'list _ equals _' 'auto auto' 'list1' 'list2'
+  space
+  spec 'r' 'list_circular' 'circular item _ of _' 'auto auto' '10' 'aListOrString'
+  space
+  spec 'r' 'list_map' 'map _ over _' 'str.functionNameMenu auto' 'aFunction' 'aList'
+  spec 'r' 'list_filter' 'filter _ with _' 'auto str.functionNameMenu' 'aList' 'aFunction'
+  spec 'r' 'list_pick' 'pick _ from _' 'menu.pick str' 'some' 'aList'
+  spec 'r' 'list_replace' '_ with _ items replaced by _' 'auto str.pick auto' 'aList' 'indices' 10
+  space
+  spec ' ' 'list_reverse' 'reverse _' 'auto' 'aList'
+  spec ' ' 'list_shuffle' 'shuffle _' 'auto' 'aList'
+  spec ' ' 'list_mergesort' 'sort _' 'auto' 'aList'
+  spec ' ' 'list_unique' 'unique _' 'auto' 'aList'
+  space
+  spec 'r' 'list_shuffled' 'shuffled _' 'auto' 'aList'
+  spec 'r' 'list_reversed' 'reversed _' 'auto' 'aList'
+  spec 'r' 'list_sorted' 'sorted _' 'auto' 'aList'
+  spec 'r' 'list_uniqued' 'uniqued _' 'auto' 'aList'
+  space
+  spec ' ' '_list_mergeStep' '_mergeStep _ _ _ _ _' 'auto num num num auto' 'srcList' 1 2 3 'dstList'
+
+to '_list_mergeStep' src left right end dst {
+  local 'i' left
+  local 'j' right
+  local 'k' left
+  repeatUntil (k > end) {
+    if (and (i < right) (or (j > end) ((at i src) <= (at j src)))) {
+      atPut k dst (at i src)
+      i += 1
+    } else {
+      atPut k dst (at j src)
+      j += 1
+    }
+    k += 1
+  }
+}
+
+to list_circular n list {
+  if (n < 1) {
+    return (at ((size list) - ((absoluteValue n) % (size list))) list)
+  } else {
+    return (at (((n - 1) % (size list)) + 1) list)
+  }
+}
+
+to list_contains aList aValue {
+  for item aList {
+    if (aValue == item) {return (booleanConstant true)}
+  }
+  return (booleanConstant false)
+}
+
+to list_equals list1 list2 {
+  comment 'Recursively compare two list structures and return true if they are equal.
+Note: May not terminate if a list includes itself, either directly or indirectly,
+but such circular list structures are rare in MicroBlocks.'
+  if (list1 == list2) {
+    return (booleanConstant true)
+  }
+  if ((size list1) != (size list2)) {
+    return (booleanConstant false)
+  }
+  for i (size list1) {
+    item1 = (at i list1)
+    item2 = (at i list2)
+    if (item1 != item2) {
+      if (and (isType item1 'list') (isType item2 'list')) {
+        if (not (list_equals item1 item2)) {return (booleanConstant false)}
+      } else {
+        return (booleanConstant false)
+      }
+    }
+  }
+  return (booleanConstant true)
+}
+
+to list_filter src selectionFunction {
+  local 'result' ('[data:makeList]')
+  for item src {
+    if (callCustomReporter selectionFunction ('[data:makeList]' item)) {'[data:addLast]' item result}
+  }
+  return result
+}
+
+to list_map aFunction src {
+  local 'result' ('[data:makeList]')
+  for item src {
+    '[data:addLast]' (callCustomReporter aFunction ('[data:makeList]' item)) result
+  }
+  return result
+}
+
+to list_mergesort src {
+  local 'len' (size src)
+  local 'work list' (newList len)
+  local 'width' 1
+  repeatUntil (width >= len) {
+    local 'i' 1
+    repeatUntil (i > len) {
+      '_list_mergeStep' src i (minimum (i + width) len) (minimum (i + ((2 * width) - 1)) len) (v 'work list')
+      i += (2 * width)
+    }
+    comment 'Copy working list into the source list.'
+    for i len {
+      atPut i src (at i (v 'work list'))
+    }
+    width = (2 * width)
+  }
+}
+
+to list_pick selection list {
+  if (isType selection 'list') {
+    local 'selected' ('[data:makeList]')
+    for i selection {
+      '[data:addLast]' (at i list) selected
+    }
+    return selected
+  } else {
+    local 'amount' (minimum (size list) (maximum 1 (((size list) * (at ('[data:find]' selection ('[data:makeList]' 'a few' 'some' 'most')) ('[data:makeList]' 20 50 80))) / 100)))
+    return (list_sorted ('[data:copyFromTo]' (list_shuffled list) 1 amount))
+  }
+}
+
+to list_replace 'a list' indices replacement {
+  if (indices == '') {return (v 'a list')}
+  if (or (indices == 'a few') (indices == 'some') (indices == 'most')) {indices = (list_pick indices ('[data:range]' 1 (size (v 'a list'))))}
+  local 'new list' ('[data:copyFromTo]' (v 'a list') 1)
+  for i (ifExpression (isType indices 'list') indices ('[data:split]' ('[data:convertType]' indices 'string') ',')) {
+    atPut i (v 'new list') replacement
+  }
+  return (v 'new list')
+}
+
+to list_reverse aList {
+  local 'i' 1
+  local 'j' (size aList)
+  repeatUntil (i >= j) {
+    local 'tmp' (at i aList)
+    atPut i aList (at j aList)
+    atPut j aList tmp
+    i += 1
+    j += -1
+  }
+}
+
+to list_reversed list {
+  local 'new list' ('[data:copyFromTo]' list 1)
+  list_reverse (v 'new list')
+  return (v 'new list')
+}
+
+to list_shuffle aList {
+  local 'len' (size aList)
+  for i len {
+    local 'j' (random 1 len)
+    local 'tmp' (at i aList)
+    atPut i aList (at j aList)
+    atPut j aList tmp
+  }
+}
+
+to list_shuffled list {
+  local 'new list' ('[data:copyFromTo]' list 1)
+  list_shuffle (v 'new list')
+  return (v 'new list')
+}
+
+to list_sorted list {
+  local 'new list' ('[data:copyFromTo]' list 1)
+  list_mergesort (v 'new list')
+  return (v 'new list')
+}
+
+to list_unique list {
+  local 'idx' 1
+  repeatUntil (idx >= (size list)) {
+    local 'item' (at idx list)
+    local 'found' ('[data:find]' item list (idx + 1))
+    repeatUntil (or (found == -1) (idx == found)) {
+      '[data:delete]' found list
+      found = ('[data:find]' item list (idx + 1))
+    }
+    idx += 1
+  }
+}
+
+to list_uniqued list {
+  local 'unique' ('[data:copyFromTo]' list 1)
+  list_unique unique
+  return unique
+}
+
+
+module TFT Output
+author MicroBlocks
+version 1 12 
+description 'Draw graphics and write text on boards with a TFT display, such as the M5Stack, M5Stick, Citilab ED1 or (discontinued) IoT-Bus.'
+
+  spec ' ' '[tft:clear]' 'clear TFT display'
+  space
+  spec ' ' '[tft:rect]' 'draw rectangle on TFT at x _ y _ width _ height _ color _ : filled _' 'num num num num color bool' 10 10 40 30 nil true
+  spec ' ' '[tft:roundedRect]' 'draw rounded rectangle on TFT at x _ y _ width _ height _ radius _ color _ : filled _' 'num num num num num color bool' 10 10 40 30 8 nil true
+  spec ' ' '[tft:circle]' 'draw circle on TFT at x _ y _ radius _ color _ : filled _' 'num num num color bool' 40 40 30 nil true
+  spec ' ' '[tft:triangle]' 'draw triangle on TFT at x _ y _ , x _ y _ , x _ y _ color _ : filled _' 'num num num num num num color bool' 20 20 30 80 60 5 nil true
+  spec ' ' '[tft:line]' 'draw line on TFT from x _ y _ to x _ y _ color _' 'num num num num color' 12 8 25 15
+  spec ' ' 'tft_drawVector' 'draw vector x _ y _ angle _ length _ color _' 'num num num num color' 40 40 45 40
+  space
+  spec ' ' '[tft:text]' 'write _ on TFT at x _ y _ color _ : scale _ wrap _ : bg color _' 'str num num color num bool color' 'Hello World!' 5 5 nil 2 true
+  spec ' ' 'tft_drawText' 'draw text _ on TFT at x _ y _ color _ : scale _ : bg color _' 'str num num color num color' 'Line 1
+Line 2' 50 20 nil 2
+  space
+  spec ' ' '[tft:setPixel]' 'set TFT pixel x _ y _ to _' 'num num color' 10 10
+  spec ' ' '[tft:pixelRow]' 'draw pixel row _ x _ y _ : bytesPerPixel _ : palette _' 'auto num num num str' 'aList' 0 0 4
+  spec ' ' '[tft:drawBitmap]' 'draw bitmap _ palette _ on TFT at x _ y _' 'str str num num' 'aBitmap' 'a list of colors' 10 10
+  space
+  spec 'r' 'tft_colorSwatch' '_' 'color'
+  spec 'r' 'makeColor' 'color r _ g _ b _ (0-255)' 'num num num' 0 100 100
+  spec 'r' 'makeGray' 'gray _ %' 'num' 50
+  spec 'r' 'randomColor' 'random color'
+  space
+  spec 'r' '[tft:getWidth]' 'TFT width'
+  spec 'r' '[tft:getHeight]' 'TFT height'
+  space
+  spec ' ' '[tft:setBacklight]' 'set TFT backlight _ (0-10)' 'num' 10
+  space
+  spec ' ' '_deferMonochromeDisplayUpdates' '_defer monochrome display updates'
+  spec ' ' '_resumeMonochromeDisplayUpdates' '_resume monochrome display updates'
+
+to '_deferMonochromeDisplayUpdates' {
+  '[tft:deferUpdates]'
+}
+
+to '_resumeMonochromeDisplayUpdates' {
+  '[tft:resumeUpdates]'
+}
+
+to makeColor r g b {
+  r = (maximum 0 (minimum r 255))
+  g = (maximum 0 (minimum g 255))
+  b = (maximum 0 (minimum b 255))
+  return ((r << 16) | ((g << 8) | b))
+}
+
+to makeGray percent {
+  gray = ((percent * 255) / 100)
+  gray = (maximum 0 (minimum gray 255))
+  return ((gray << 16) | ((gray << 8) | gray))
+}
+
+to randomColor {
+  local 'n1' (random 100 200)
+  local 'n2' (random 0 100)
+  if (1 == (random 1 3)) {
+    return ((n1 << 16) | (n2 << 8))
+  } (1 == (random 1 2)) {
+    return ((n2 << 16) | n1)
+  } else {
+    return ((n1 << 8) | n2)
+  }
+}
+
+to tft_colorSwatch color {
+  return color
+}
+
+to tft_drawText s x y color optionalScale optionalBGColor {
+  s = ('[data:convertType]' s 'string')
+  local 'scale' (argOrDefault 5 2)
+  local 'bgColor' (argOrDefault 6 '')
+  local 'lines' ('[data:split]' s ('[data:unicodeString]' 10))
+  for line ('[data:split]' s ('[data:unicodeString]' 10)) {
+    if (isType bgColor 'number') {
+      '[tft:text]' line x y color scale false bgColor
+    } else {
+      '[tft:text]' line x y color scale false
+    }
+    y += (8 * scale)
+  }
+}
+
+to tft_drawVector x y angle length color {
+  local 'endX' (x + ((length * ('[misc:sin]' (100 * (angle + 90)))) >> 14))
+  local 'endY' (y + ((length * ('[misc:sin]' (100 * angle))) >> 14))
+  '[tft:line]' x y endX endY color
+}
+
+
+module WiFi Comm
+author MicroBlocks
+version 1 10 
+tags communication network 
+description 'Connect to a WiFi network. Used in conjunction with other network libraries, such as HTTP client, HTTP server or Web Thing.
+'
+
+  spec ' ' 'wifiConnect' 'wifi connect to _ password _ : IP _ gateway _ subnet _' 'str str auto auto auto' 'Network_Name' '' '192.168.1.42' '192.168.1.1' '255.255.255.0'
+  spec ' ' 'wifiCreateHotspot' 'wifi create hotspot _ password _' 'str str' 'Network_Name' 'Network_Password'
+  spec ' ' '[net:stopWiFi]' 'stop wifi'
+  space
+  spec ' ' '[net:setDomainName]' 'wifi set local domain name _ .local' 'str' 'microblocks'
+  space
+  spec 'r' 'getIPAddress' 'IP address'
+  spec 'r' '[net:myMAC]' 'MAC address'
+  space
+  spec ' ' '[net:allowWiFiAndBLE]' 'allow WiFi while using BLE _' 'bool' true
+
+to getIPAddress {
+  return ('[net:myIPAddress]')
+}
+
+to wifiConnect ssid password fixedIP gatewayIP subnetIP {
+  if (not ('[net:hasWiFi]')) {return}
+  '[net:stopWiFi]'
+  if ((pushArgCount) < 5) {
+    '[net:startWiFi]' ssid password
+  } else {
+    '[net:startWiFi]' ssid password false fixedIP gatewayIP subnetIP
+  }
+  local 'startMSecs' (millisOp)
+  repeatUntil (('[net:myIPAddress]') != '0.0.0.0') {
+    comment 'Timeout after N seconds'
+    if (((millisOp) - startMSecs) > 30000) {
+      sayIt 'Could not connect'
+      return 0
+    }
+    comment 'Slow blink while trying to connect'
+    setUserLED true
+    waitMillis 300
+    setUserLED false
+    waitMillis 300
+  }
+  repeat 6 {
+    comment 'Quick blinks when connected'
+    setUserLED true
+    waitMillis 50
+    setUserLED false
+    waitMillis 50
+  }
+  '[net:setDomainName]' 'microblocks'
+  sayIt 'My IP address is:' ('[net:myIPAddress]')
+}
+
+to wifiCreateHotspot ssid password {
+  if (not ('[net:hasWiFi]')) {return}
+  if ((size password) < 8) {
+    sayIt 'Password must be at least 8 characters'
+    return 0
+  }
+  '[net:startWiFi]' ssid password true
+  if ('Connected' != ('[net:wifiStatus]')) {
+    sayIt 'Could not create hotspot'
+    return 0
+  }
+  repeat 6 {
+    comment 'Quick blinks when connected'
+    setUserLED true
+    waitMillis 50
+    setUserLED false
+    waitMillis 50
+  }
+  '[net:setDomainName]' 'microblocks'
+  sayIt 'My IP address is:' ('[net:myIPAddress]')
+}
+

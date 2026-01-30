@@ -7,7 +7,7 @@ description 'Make snapshot of lvgl screen
 
   spec ' ' 'make snapshot' 'make snapshot _' 'auto' 'http://192.168.1.109:8000/'
   spec ' ' 'connect wifi' 'connect wifi'
-  spec ' ' 'timersnapshot' 'timersnapshot _ wait _' 'auto auto' '10' '10'
+  spec ' ' 'timersnapshot' 'timersnapshot _ wait _' 'auto auto' 'http://192.168.1.109:8000/upload' '500'
 
 to 'connect wifi' {
   '[file:open]' 'wifi.txt'

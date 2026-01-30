@@ -1,0 +1,35 @@
+module grideye
+author Ste7an
+version 1 0 
+description 'Panasonic grideye amg88xx 8x8 IR sensor'
+
+  spec 'r' 'grideye' 'grideye'
+  spec 'r' 'two_comp' 'two_comp _' 'auto' '10'
+  spec ' ' 'plot_grid' 'plot_grid _' 'auto' '10'
+
+to grideye {
+  local 'buf' ('[data:newByteArray]' 128)
+  for i 127 {
+    atPut i buf (i2cGet 104 (127 + i))
+  }
+  local 'temp' (newList 64)
+  for i 64 {
+    atPut i temp ((10 * (two_comp (((at ((i * 2) + 0) buf) * 256) + (at ((i * 2) - 1) buf)))) / 4)
+  }
+  return temp
+}
+
+to plot_grid temp {
+  for i 8 {
+    for j 8 {
+      local 't' (at ((((8 - j) * 8) + (i - 1)) + 1) temp)
+      '[tft:rect]' (20 * i) (20 * j) 20 20 (makeColor (((t - 180) * 100) / 150) (40 - (((t - 180) * 100) / 150)) 0)
+    }
+  }
+}
+
+to two_comp val {
+  if ((val & (hexToInt '800')) == (hexToInt '800')) {return (val - (hexToInt '1000'))}
+  return val
+}
+
